@@ -157,18 +157,22 @@ function tickStats() {
 }
 
 function updateOdds() {
-  const odds = state.participants > 0 ? (100 / state.participants).toFixed(2) + "%" : "—";
-  $("your-odds").textContent = state.connected ? odds : "Connect";
+  if (!state.connected) {
+    $("your-odds").textContent = "—";
+    return;
+  }
+  $("your-odds").textContent = state.participants > 0
+    ? (100 / state.participants).toFixed(2) + "%"
+    : "—";
 }
 
 function addActivity(item) {
   const feed = $("activity-feed");
   const li = document.createElement("li");
-  li.className = "activity-item";
   li.innerHTML = `
-    <div class="activity-icon ${item.type}">${item.icon}</div>
-    <div class="activity-body">${item.body}</div>
-    <span class="activity-time">now</span>
+    <div class="feed-icon ${item.type}">${item.icon}</div>
+    <div class="feed-body">${item.body}</div>
+    <span class="feed-time">now</span>
   `;
   feed.prepend(li);
   while (feed.children.length > 12) feed.lastChild.remove();
@@ -290,8 +294,8 @@ function initParticles() {
         ctx.closePath();
         ctx.fill();
       } else {
-        ctx.fillStyle = "#00ff41";
-        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+      ctx.fillStyle = "#00c805";
+      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
       }
       ctx.restore();
     });
