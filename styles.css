@@ -41,7 +41,7 @@ button { font-family: inherit; cursor: pointer; border: none; }
   background: rgba(0,0,0,0.9); backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--line);
 }
-.brand-logo { height: 44px; width: auto; display: block; }
+.brand-logo { height: 44px; width: auto; display: block; background: transparent; }
 .nav { display: none; gap: 1.5rem; }
 .nav a { font-size: 0.85rem; color: var(--muted); font-weight: 500; }
 .nav a:hover { color: var(--text); }
@@ -222,6 +222,7 @@ main { position: relative; z-index: 1; max-width: var(--max); margin: 0 auto; pa
 .feed-icon.entry { background: var(--green-soft); color: var(--green); }
 .feed-body { flex: 1; }
 .feed-time { font-size: 0.6rem; color: var(--muted); white-space: nowrap; }
+.feed-empty { padding: 1.5rem; text-align: center; color: var(--muted); font-size: 0.85rem; list-style: none; background: transparent; border: none; }
 
 /* Sections */
 .section-block { margin-bottom: 2.5rem; }

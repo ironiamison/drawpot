@@ -1,58 +1,37 @@
-/* DAWPOT — live layer + 3D lotto balls */
+/* DAWPOT — real on-chain data only */
 
 const DRAW_MS = 20 * 60 * 1000;
 const RING_C = 553;
-const ETH_USD = 3400;
-
-const BALL_NUMBERS = [7, 23, 42, 88, 14, 56];
+const cfg = () => window.DAWPOT_CONFIG || {};
 
 const state = {
-  prizeUsd: 0,
-  prizeEth: 0,
+  live: false,
+  connected: false,
+  wallet: null,
+  walletBalance: 0n,
+  ethPrice: 0,
+  vaultEth: 0,
   vaultUsd: 0,
-  feesUsd: 0,
-  paidUsd: 0,
   participants: 0,
   entries: 0,
-  draws: 0,
-  connected: false,
-  drawing: false,
-  lastDrawAt: 0,
+  seenTx: new Set(),
 };
-
-const ACTIVITY_TYPES = [
-  { type: "buy", icon: "↑", tpl: (a) => `<strong>${a}</strong> bought $POT` },
-  { type: "sell", icon: "↓", tpl: (a) => `<strong>${a}</strong> sold $POT` },
-  { type: "vault", icon: "★", tpl: (v) => `Vault <strong>+${v} ETH</strong> from tax` },
-  { type: "entry", icon: "✓", tpl: (a) => `<strong>${a}</strong> entered the draw` },
-];
-
-const TICKER_ITEMS = [
-  "DAWPOT LOTTO",
-  "Robinhood Crypto Tax Token",
-  "Every 20 Minutes Someone Wins",
-  "Hold 20K $POT To Enter",
-  "5% Tax → 100% Vault",
-  "Live On Robinhood Chain",
-  "Launch Via Flap",
-];
 
 function $(id) { return document.getElementById(id); }
 
-function randAddr() {
-  const h = () => Math.floor(Math.random() * 0xffff).toString(16).padStart(4, "0");
-  return `0x${h()}…${h().slice(0, 3)}`;
-}
-
 function fmtUsd(n) {
+  if (!n || !Number.isFinite(n)) return "0.00";
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function fmtEth(n) { return n.toFixed(4); }
+function fmtEth(n) {
+  if (!n || !Number.isFinite(n)) return "0.0000";
+  return n.toFixed(4);
+}
 
-function nextDrawMs() {
-  const now = Date.now();
-  return DRAW_MS - (now % DRAW_MS);
+function shortAddr(a) {
+  if (!a || a.length < 10) return a || "—";
+  return `${a.slice(0, 6)}…${a.slice(-4)}`;
 }
 
 function showToast(msg) {
@@ -63,102 +42,140 @@ function showToast(msg) {
   showToast._t = setTimeout(() => el.classList.add("hidden"), 2800);
 }
 
-function initTicker() {
-  const track = $("ticker-track");
-  const items = [...TICKER_ITEMS, ...TICKER_ITEMS];
-  track.innerHTML = items.map((t) => `<span>${t}</span>`).join("");
-}
-
-// ── 3D Lotto balls (logo style: green + gold center) ──
-
-function createBall(num, isGold = false) {
-  const el = document.createElement("div");
-  el.className = `lotto-ball ${isGold ? "lotto-ball--gold" : "lotto-ball--green"}`;
-  if (isGold) {
-    el.innerHTML = `<span class="ball-feather">🪶</span>`;
-  } else {
-    el.innerHTML = `<span class="ball-num">${String(num).padStart(2, "0")}</span>`;
-  }
-  return el;
-}
-
-function initBalls(container, count = 6) {
-  container.innerHTML = "";
-  const nums = [...BALL_NUMBERS].sort(() => Math.random() - 0.5).slice(0, count - 1);
-  nums.forEach((n) => container.appendChild(createBall(n)));
-  container.appendChild(createBall(0, true));
-}
-
-function shuffleBalls(container) {
-  container.querySelectorAll(".lotto-ball").forEach((b, i) => {
-    b.classList.add("spin");
-    if (!b.classList.contains("lotto-ball--gold")) {
-      const numEl = b.querySelector(".ball-num");
-      if (numEl) numEl.textContent = String(Math.floor(Math.random() * 90) + 1).padStart(2, "0");
-    }
-    setTimeout(() => b.classList.remove("spin"), 450);
+function applyConfig() {
+  const c = cfg();
+  const token = c.tokenAddress || "";
+  $("copy-contract").dataset.address = token;
+  const flap = c.flapUrl || "https://flap.sh";
+  ["buy-link", "buy-link-draw"].forEach((id) => {
+    const el = $(id);
+    if (el) el.href = flap;
   });
 }
 
-function updateCountdown() {
-  const remaining = nextDrawMs();
-  const totalSec = Math.floor(remaining / 1000);
-  const min = Math.floor(totalSec / 60);
-  const sec = totalSec % 60;
-  $("countdown").textContent = `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+function initTicker() {
+  const items = [
+    "DAWPOT LOTTO",
+    "Robinhood Crypto Tax Token",
+    "Every 20 Minutes Someone Wins",
+    "Hold 20K $POT To Enter",
+    "Live On Robinhood Chain",
+  ];
+  $("ticker-track").innerHTML = [...items, ...items].map((t) => `<span>${t}</span>`).join("");
+}
 
-  $("ring-progress").style.strokeDashoffset = RING_C * (1 - (1 - remaining / DRAW_MS));
+function createBall(num, gold = false) {
+  const el = document.createElement("div");
+  el.className = `lotto-ball ${gold ? "lotto-ball--gold" : "lotto-ball--green"}`;
+  el.innerHTML = gold
+    ? `<span class="ball-feather">🪶</span>`
+    : `<span class="ball-num">${String(num).padStart(2, "0")}</span>`;
+  return el;
+}
+
+function initBalls(container) {
+  container.innerHTML = "";
+  [7, 23, 42, 88].forEach((n) => container.appendChild(createBall(n)));
+  container.appendChild(createBall(0, true));
+}
+
+function updateCountdown() {
+  const now = Date.now();
+  const remaining = DRAW_MS - (now % DRAW_MS);
+  const sec = Math.floor(remaining / 1000);
+  $("countdown").textContent = `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
+  $("ring-progress").style.strokeDashoffset = RING_C * (remaining / DRAW_MS);
 
   const phase = $("draw-phase");
-  if (totalSec <= 10 && totalSec > 0) {
+  if (sec <= 10) {
     phase.textContent = "Drawing soon…";
     phase.style.color = "#ffd700";
-  } else if (state.drawing) {
-    phase.textContent = "Selecting winner…";
-    phase.style.color = "#00ff41";
   } else {
-    phase.textContent = "Entries open";
+    phase.textContent = state.live ? "Entries open" : "Awaiting token";
     phase.style.color = "";
-  }
-
-  const drawSlot = Math.floor(Date.now() / DRAW_MS);
-  if (totalSec <= 1 && !state.drawing && state.lastDrawAt !== drawSlot) {
-    state.lastDrawAt = drawSlot;
-    triggerDraw();
   }
 }
 
-function tickStats() {
-  const taxBump = (Math.random() * 0.0008 + 0.0002) * ETH_USD;
-  state.prizeUsd += taxBump * 0.6;
-  state.prizeEth = state.prizeUsd / ETH_USD;
-  state.vaultUsd = state.prizeUsd;
-  state.feesUsd += taxBump * 0.4;
+function renderStats(data) {
+  state.live = data.live;
+  state.ethPrice = data.ethPrice || 0;
+  state.vaultEth = data.vaultEth || 0;
+  state.vaultUsd = data.vaultUsd || 0;
+  state.participants = data.holders || 0;
+  state.entries = data.entries || data.holders || 0;
 
-  if (Math.random() > 0.7) {
-    state.participants += 1;
-    state.entries += Math.floor(Math.random() * 3) + 1;
-  }
-
-  $("prize-pool").textContent = fmtUsd(state.prizeUsd);
-  $("prize-eth").textContent = fmtEth(state.prizeEth);
+  $("prize-pool").textContent = fmtUsd(state.vaultUsd);
+  $("prize-eth").textContent = fmtEth(state.vaultEth);
   $("vault-balance").textContent = "$" + fmtUsd(state.vaultUsd);
-  $("fees-collected").textContent = "$" + fmtUsd(state.feesUsd);
-  $("total-paid").textContent = "$" + fmtUsd(state.paidUsd);
+  $("fees-collected").textContent = state.live ? "On-chain" : "—";
+  $("total-paid").textContent = "$0.00";
   $("participants").textContent = state.participants.toLocaleString();
   $("entries").textContent = state.entries.toLocaleString();
-  $("draws-count").textContent = state.draws;
+  $("draws-count").textContent = "0";
 
-  const fillPct = Math.min(95, (state.prizeUsd / 5000) * 100);
+  const fillPct = Math.min(100, state.vaultEth > 0 ? Math.log10(state.vaultEth * 1000 + 1) * 25 : 0);
   $("vault-fill").style.width = fillPct + "%";
-  $("vault-fill-pct").textContent = Math.round(fillPct) + "%";
+  $("vault-fill-pct").textContent = state.vaultEth > 0 ? fmtEth(state.vaultEth) + " ETH" : "0%";
 
   updateOdds();
+
+  const badge = document.querySelector(".live-badge");
+  if (badge && data.live) {
+    badge.innerHTML = `<span class="live-dot"></span> Live · ${data.symbol || "POT"} · Robinhood Chain`;
+  }
+}
+
+function renderTransfers(transfers) {
+  if (!transfers?.length) return;
+
+  transfers.forEach((t) => {
+    if (!t.hash || state.seenTx.has(t.hash)) return;
+    state.seenTx.add(t.hash);
+
+    const isBuy = t.to && t.to !== "0x0000000000000000000000000000000000000000";
+    const addr = isBuy ? t.to : t.from;
+    const time = t.ts ? timeAgo(t.ts) : "now";
+
+    addFeed({
+      type: isBuy ? "buy" : "sell",
+      icon: isBuy ? "↑" : "↓",
+      body: `<strong>${shortAddr(addr)}</strong> ${isBuy ? "bought" : "sold"} $POT`,
+      time,
+      hash: t.hash,
+    });
+  });
+}
+
+function timeAgo(ts) {
+  const d = new Date(ts);
+  const sec = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (sec < 60) return `${sec}s`;
+  if (sec < 3600) return `${Math.floor(sec / 60)}m`;
+  return d.toLocaleTimeString();
+}
+
+function addFeed(item) {
+  const feed = $("activity-feed");
+  const li = document.createElement("li");
+  const c = cfg();
+  const txLink = item.hash ? `${c.explorer}/tx/${item.hash}` : "#";
+  li.innerHTML = `
+    <div class="feed-icon ${item.type}">${item.icon}</div>
+    <div class="feed-body">${item.body}</div>
+    <a class="feed-time" href="${txLink}" target="_blank" rel="noopener">${item.time}</a>
+  `;
+  feed.prepend(li);
+  while (feed.children.length > 20) feed.lastChild.remove();
 }
 
 function updateOdds() {
-  if (!state.connected) {
+  if (!state.connected || !state.wallet) {
     $("your-odds").textContent = "—";
+    return;
+  }
+  const minRaw = BigInt(cfg().minHold || 20000) * 10n ** BigInt(cfg().decimals || 18);
+  if (state.walletBalance < minRaw) {
+    $("your-odds").textContent = "N/A";
     return;
   }
   $("your-odds").textContent = state.participants > 0
@@ -166,85 +183,96 @@ function updateOdds() {
     : "—";
 }
 
-function addActivity(item) {
-  const feed = $("activity-feed");
-  const li = document.createElement("li");
-  li.innerHTML = `
-    <div class="feed-icon ${item.type}">${item.icon}</div>
-    <div class="feed-body">${item.body}</div>
-    <span class="feed-time">now</span>
-  `;
-  feed.prepend(li);
-  while (feed.children.length > 12) feed.lastChild.remove();
-}
-
-function randomActivity() {
-  const t = ACTIVITY_TYPES[Math.floor(Math.random() * ACTIVITY_TYPES.length)];
-  let body;
-  if (t.type === "vault") {
-    body = t.tpl((Math.random() * 0.05 + 0.01).toFixed(3));
-  } else {
-    body = t.tpl(randAddr());
+async function fetchLive() {
+  const c = cfg();
+  const token = c.tokenAddress;
+  if (!token) {
+    renderStats({ live: false, vaultEth: 0, vaultUsd: 0, holders: 0, entries: 0 });
+    setAwaiting();
+    return;
   }
-  addActivity({ type: t.type, icon: t.icon, body });
-}
 
-function seedActivity() {
-  for (let i = 0; i < 5; i++) randomActivity();
-}
+  try {
+    const params = new URLSearchParams({ token });
+    if (c.vaultAddress) params.set("vault", c.vaultAddress);
 
-function triggerDraw() {
-  state.drawing = true;
-  const flash = $("draw-flash");
-  const flashBalls = $("flash-balls");
-  flash.classList.remove("hidden");
-  initBalls(flashBalls, 5);
+    const res = await fetch(`/api/live?${params}`);
+    const data = await res.json();
 
-  const winner = randAddr();
-  const prize = state.prizeUsd;
-
-  const spinInterval = setInterval(() => shuffleBalls(flashBalls), 150);
-  setTimeout(() => clearInterval(spinInterval), 1200);
-
-  setTimeout(() => { $("flash-winner").textContent = winner; }, 1500);
-
-  setTimeout(() => {
-    flash.classList.add("hidden");
-    state.drawing = false;
-
-    if (prize > 0) {
-      state.paidUsd += prize;
-      state.draws += 1;
-      state.prizeUsd = 0;
-      state.prizeEth = 0;
-      state.vaultUsd = 0;
-      addWinner(winner, prize);
-      addActivity({ type: "vault", icon: "🏆", body: `<strong>${winner}</strong> won <strong>$${fmtUsd(prize)}</strong>` });
-      showToast(`🏆 Winner: ${winner}`);
+    if (!data.live) {
+      setAwaiting(data.error);
+      return;
     }
 
-    shuffleBalls($("lotto-balls"));
-    tickStats();
-  }, 3500);
+    renderStats(data);
+    renderTransfers(data.transfers);
+
+    if (state.wallet) await refreshWalletBalance();
+  } catch (e) {
+    console.error(e);
+    showToast("Failed to fetch on-chain data");
+  }
 }
 
-function addWinner(wallet, prize) {
-  const tbody = $("winners-body");
-  const empty = tbody.querySelector(".empty-row");
-  if (empty) empty.remove();
-
-  const tr = document.createElement("tr");
-  tr.innerHTML = `
-    <td>${state.draws}</td>
-    <td class="winner-wallet">${wallet}</td>
-    <td class="winner-prize">$${fmtUsd(prize)}</td>
-    <td>Just now</td>
-    <td class="winner-tx">View →</td>
-  `;
-  tbody.prepend(tr);
+function setAwaiting(msg) {
+  const feed = $("activity-feed");
+  if (!feed.children.length) {
+    feed.innerHTML = `<li class="feed-empty">${msg || "Paste token contract in config.js — waiting for launch"}</li>`;
+  }
 }
 
-// ── Confetti particles (green squares + gold stars like logo) ──
+async function connectWallet() {
+  if (!window.ethereum) return showToast("Install MetaMask or Robinhood Wallet");
+
+  try {
+    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    state.wallet = accounts[0];
+    state.connected = true;
+
+    const chainId = cfg().chainId || 4663;
+    const hexChain = "0x" + chainId.toString(16);
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: hexChain }],
+      });
+    } catch (e) {
+      if (e.code === 4902) {
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: hexChain,
+            chainName: cfg().chainName || "Robinhood Chain",
+            rpcUrls: [cfg().rpcUrl],
+            nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+            blockExplorerUrls: [cfg().explorer],
+          }],
+        });
+      }
+    }
+
+    await refreshWalletBalance();
+    $("connect-wallet").textContent = shortAddr(state.wallet);
+    updateOdds();
+    showToast("Wallet connected");
+  } catch {
+    showToast("Connection cancelled");
+  }
+}
+
+async function refreshWalletBalance() {
+  const token = cfg().tokenAddress;
+  if (!token || !state.wallet) return;
+
+  const balHex = await window.ethereum.request({
+    method: "eth_call",
+    params: [{
+      to: token,
+      data: "0x70a08231" + state.wallet.slice(2).padStart(64, "0"),
+    }, "latest"],
+  });
+  state.walletBalance = BigInt(balHex || "0x0");
+}
 
 function initParticles() {
   const canvas = $("particles");
@@ -252,64 +280,39 @@ function initParticles() {
   let w, h, parts;
 
   function resize() {
-    w = canvas.width = window.innerWidth;
-    h = canvas.height = window.innerHeight;
-    parts = Array.from({ length: 55 }, () => ({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      size: Math.random() * 4 + 2,
-      vx: (Math.random() - 0.5) * 0.4,
-      vy: (Math.random() - 0.5) * 0.4,
-      rot: Math.random() * 360,
-      vr: (Math.random() - 0.5) * 2,
-      gold: Math.random() > 0.65,
-      a: Math.random() * 0.4 + 0.15,
+    w = canvas.width = innerWidth;
+    h = canvas.height = innerHeight;
+    parts = Array.from({ length: 40 }, () => ({
+      x: Math.random() * w, y: Math.random() * h,
+      s: Math.random() * 3 + 1,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
+      gold: Math.random() > 0.7,
+      a: Math.random() * 0.25 + 0.08,
     }));
   }
 
   function draw() {
     ctx.clearRect(0, 0, w, h);
     parts.forEach((p) => {
-      p.x += p.vx;
-      p.y += p.vy;
-      p.rot += p.vr;
-      if (p.x < 0) p.x = w;
-      if (p.x > w) p.x = 0;
-      if (p.y < 0) p.y = h;
-      if (p.y > h) p.y = 0;
-
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate((p.rot * Math.PI) / 180);
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
+      if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
       ctx.globalAlpha = p.a;
-
-      if (p.gold) {
-        ctx.fillStyle = "#ffd700";
-        ctx.beginPath();
-        for (let i = 0; i < 4; i++) {
-          const a = (i * Math.PI) / 2;
-          const r = i % 2 === 0 ? p.size : p.size * 0.4;
-          ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-        }
-        ctx.closePath();
-        ctx.fill();
-      } else {
-      ctx.fillStyle = "#00c805";
-      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-      }
-      ctx.restore();
+      ctx.fillStyle = p.gold ? "#ffd700" : "#00c805";
+      ctx.fillRect(p.x, p.y, p.s, p.s);
     });
     requestAnimationFrame(draw);
   }
 
   resize();
-  window.addEventListener("resize", resize);
+  addEventListener("resize", resize);
   draw();
 }
 
 $("copy-contract").addEventListener("click", async (e) => {
   const addr = e.currentTarget.dataset.address;
-  if (!addr) return showToast("Contract not live yet — launch on Flap");
+  if (!addr) return showToast("Set tokenAddress in config.js first");
   try {
     await navigator.clipboard.writeText(addr);
     showToast("Contract copied");
@@ -318,33 +321,39 @@ $("copy-contract").addEventListener("click", async (e) => {
   }
 });
 
-$("connect-wallet").addEventListener("click", () => {
-  state.connected = true;
-  showToast("Wallet connected (demo)");
-  updateOdds();
-});
+$("connect-wallet").addEventListener("click", connectWallet);
 
-$("check-eligibility").addEventListener("click", () => {
+$("check-eligibility").addEventListener("click", async () => {
   if (!state.connected) return showToast("Connect wallet first");
-  showToast("Need 20,000+ $POT to enter draws");
+  const minRaw = BigInt(cfg().minHold || 20000) * 10n ** BigInt(cfg().decimals || 18);
+  if (state.walletBalance >= minRaw) {
+    showToast(`Eligible — ${fmtHuman(state.walletBalance)} $POT`);
+  } else {
+    showToast(`Need ${cfg().minHold?.toLocaleString()}+ $POT`);
+  }
 });
 
+function fmtHuman(raw) {
+  const d = cfg().decimals || 18;
+  const n = Number(raw) / 10 ** d;
+  return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+}
+
+applyConfig();
 initTicker();
 initBalls($("lotto-balls"));
 initParticles();
-seedActivity();
-
-state.prizeUsd = 127.43;
-state.prizeEth = state.prizeUsd / ETH_USD;
-state.vaultUsd = state.prizeUsd;
-state.feesUsd = 89.2;
-state.participants = 47;
-state.entries = 312;
-tickStats();
+updateCountdown();
+fetchLive();
 
 setInterval(updateCountdown, 1000);
-setInterval(tickStats, 4000);
-setInterval(randomActivity, 3500);
-setInterval(() => shuffleBalls($("lotto-balls")), 8000);
+setInterval(fetchLive, cfg().pollMs || 15000);
 
-updateCountdown();
+if (window.ethereum) {
+  window.ethereum.on("accountsChanged", (a) => {
+    state.wallet = a[0] || null;
+    state.connected = !!state.wallet;
+    $("connect-wallet").textContent = state.wallet ? shortAddr(state.wallet) : "Connect";
+    if (state.wallet) refreshWalletBalance().then(updateOdds);
+  });
+}

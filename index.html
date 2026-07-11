@@ -34,7 +34,7 @@
     <div class="header-actions">
       <button class="btn btn-ghost" id="copy-contract" data-address="">Copy CA</button>
       <button class="btn btn-ghost" id="connect-wallet">Connect</button>
-      <a href="https://flap.sh" target="_blank" rel="noopener" class="btn btn-primary">Buy $POT</a>
+      <a href="https://flap.sh" id="buy-link" target="_blank" rel="noopener" class="btn btn-primary">Buy $POT</a>
     </div>
   </header>
 
@@ -94,7 +94,7 @@
             </div>
           </div>
 
-          <a href="https://flap.sh" target="_blank" rel="noopener" class="btn btn-primary btn-block">Enter draw — Buy $POT</a>
+          <a href="https://flap.sh" id="buy-link-draw" target="_blank" rel="noopener" class="btn btn-primary btn-block">Enter draw — Buy $POT</a>
           <button class="btn btn-gold btn-block" id="check-eligibility">Check eligibility</button>
         </div>
       </div>
@@ -169,15 +169,8 @@
     <p>© 2026 DAWPOT · drawpot.xyz · Not financial advice.</p>
   </footer>
 
-  <div class="draw-flash hidden" id="draw-flash">
-    <div class="draw-flash-inner">
-      <div class="flash-balls" id="flash-balls"></div>
-      <p class="flash-title">Drawing winner…</p>
-      <p class="flash-sub" id="flash-winner"></p>
-    </div>
-  </div>
-
   <div class="toast hidden" id="toast"></div>
+  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
