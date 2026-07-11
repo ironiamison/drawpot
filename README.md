@@ -1,8 +1,8 @@
 # DrawPot
 
-On-chain lottery on Base. Hold **$POT**, fees fill the vault, one wallet wins every 20 minutes.
+On-chain lottery on **Robinhood Chain**. Hold **$POT**, fees fill the vault, one wallet wins every 20 minutes.
 
-**Site:** [drawpot.xyz](https://drawpot.xyz) · **Token launch:** [Flaunch](https://flaunch.gg)
+**Site:** [drawpot.xyz](https://drawpot.xyz) · **Chain:** [Robinhood Chain](https://docs.robinhood.com/chain/) (ID 4663)
 
 ## Deploy (GitHub Pages)
 
@@ -24,6 +24,8 @@ python3 -m http.server 8080
 |---|---|
 | Name | DrawPot |
 | Symbol | $POT |
-| Chain | Base |
-| Launch | [Flaunch](https://flaunch.gg) |
+| Chain | Robinhood Chain |
+| Chain ID | 4663 |
+| Explorer | [blockscout](https://robinhoodchain.blockscout.com/) |
+| Wallet | [Robinhood Wallet](https://robinhood.com/us/en/support/articles/robinhood-wallet/) |
 | Min entry | 20,000 $POT |
