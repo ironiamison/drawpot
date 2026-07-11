@@ -1,10 +1,10 @@
-# DrawPot
+# Hood Lotto
 
-On-chain lottery on **Robinhood Chain**, launched via **[Flap](https://flap.sh)**.
+The Robinhood lottery — on-chain on **Robinhood Chain**, launched via **[Flap](https://flap.sh)**.
 
 Hold **$POT**, taxes fill the vault, one wallet wins every 20 minutes.
 
-**Site:** [drawpot.xyz](https://drawpot.xyz)
+**Site:** [drawpot.xyz](https://drawpot.xyz) · **Live:** [GitHub Pages](https://ironiamison.github.io/drawpot/)
 
 ## Flap launch config
 

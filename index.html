@@ -3,197 +3,262 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DrawPot — On-Chain Lottery on Robinhood Chain</title>
-  <meta name="description" content="Hold $POT on Robinhood Chain. Every trade fills the vault. Every 20 minutes one wallet wins it all." />
-  <meta property="og:title" content="DrawPot — Robinhood Chain Lottery" />
-  <meta property="og:description" content="The Robinhood lottery. Every trade fills the pot. Every 20 minutes someone wins." />
+  <title>Hood Lotto — The Robinhood Lottery</title>
+  <meta name="description" content="Every trade fills the vault. Every 20 minutes one wallet wins. On-chain lottery on Robinhood Chain." />
+  <meta property="og:title" content="Hood Lotto — The Robinhood Lottery" />
+  <meta property="og:description" content="Hold $POT. Watch the pot grow. Win every 20 minutes." />
   <meta name="theme-color" content="#00c805" />
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="bg-glow" aria-hidden="true"></div>
+  <canvas id="particles" aria-hidden="true"></canvas>
+  <div class="grid-bg" aria-hidden="true"></div>
+
+  <div class="ticker" aria-hidden="true">
+    <div class="ticker-track" id="ticker-track"></div>
+  </div>
 
   <header class="header">
     <a href="#" class="brand">
-      <img src="assets/logo.svg" alt="" width="28" height="28" />
-      <span>Draw<span class="accent">Pot</span></span>
+      <img src="assets/logo.svg" alt="" width="32" height="32" />
+      <div class="brand-text">
+        <span class="brand-name">Hood Lotto</span>
+        <span class="brand-tag">The Robinhood Lottery</span>
+      </div>
     </a>
     <nav class="nav">
-      <a href="#draw">Live Draw</a>
-      <a href="#how">How it works</a>
-      <a href="#launch">Launch</a>
+      <a href="#live">Live Draw</a>
+      <a href="#vault">Vault</a>
+      <a href="#how">How it Works</a>
       <a href="#faq">FAQ</a>
     </nav>
-    <a href="https://flap.sh" target="_blank" rel="noopener" class="btn btn-primary">Buy $POT</a>
+    <div class="header-actions">
+      <button class="btn btn-ghost" id="copy-contract" data-address="">Copy CA</button>
+      <button class="btn btn-ghost" id="connect-wallet">Connect</button>
+      <a href="https://flap.sh" target="_blank" rel="noopener" class="btn btn-primary">Buy $POT</a>
+    </div>
   </header>
 
   <main>
-    <section class="hero">
-      <div class="hero-badge">
-        <span class="pulse"></span>
-        Launching on Flap · Robinhood Chain
+    <!-- LIVE DRAW HERO -->
+    <section id="live" class="live-hero">
+      <div class="live-badge">
+        <span class="live-dot"></span>
+        LIVE ON ROBINHOOD CHAIN
       </div>
-      <h1>Every trade fills the pot.<br /><span class="accent">Every 20 minutes someone wins.</span></h1>
-      <p class="hero-sub">The Robinhood lottery — launched on Flap, live on Robinhood Chain. Hold 20,000 $POT. Every 5% tax fills the vault. One wallet wins every 20 minutes.</p>
-      <div class="hero-actions">
-        <a href="#draw" class="btn btn-primary btn-lg">View Live Draw</a>
-        <a href="https://flap.sh" target="_blank" rel="noopener" class="btn btn-ghost btn-lg">Launch on Flap</a>
-        <button class="btn btn-ghost btn-lg" id="copy-contract" data-address="">Copy CA</button>
-      </div>
-      <div class="hero-stats">
-        <div><strong>20 min</strong><span>draw interval</span></div>
-        <div><strong>20K</strong><span>min hold</span></div>
-        <div><strong>100%</strong><span>on-chain</span></div>
-      </div>
-    </section>
 
-    <section id="draw" class="panel">
-      <div class="panel-head">
-        <div>
-          <p class="label">Live Draw</p>
-          <h2>Next winner in <span id="countdown" class="countdown">--:--</span></h2>
+      <div class="live-grid">
+        <div class="draw-stage">
+          <div class="countdown-ring-wrap">
+            <svg class="countdown-ring" viewBox="0 0 200 200">
+              <circle class="ring-bg" cx="100" cy="100" r="88" />
+              <circle class="ring-progress" id="ring-progress" cx="100" cy="100" r="88" />
+            </svg>
+            <div class="countdown-center">
+              <span class="countdown-label">Next Draw</span>
+              <span class="countdown-time" id="countdown">--:--</span>
+              <span class="countdown-sub" id="draw-phase">Entries open</span>
+            </div>
+          </div>
+
+          <div class="lotto-balls" id="lotto-balls" aria-hidden="true"></div>
         </div>
-        <span class="status" id="draw-status">Pre-launch</span>
-      </div>
-      <div class="stats-grid">
-        <article class="stat stat-featured">
-          <span class="stat-label">Prize Pool</span>
-          <span class="stat-value green" id="prize-pool">$0.00</span>
-        </article>
-        <article class="stat">
-          <span class="stat-label">Vault</span>
-          <span class="stat-value" id="vault-balance">$0.00</span>
-        </article>
-        <article class="stat">
-          <span class="stat-label">Holders In</span>
-          <span class="stat-value" id="participants">0</span>
-        </article>
-        <article class="stat">
-          <span class="stat-label">Total Paid Out</span>
-          <span class="stat-value" id="total-paid">—</span>
-        </article>
+
+        <div class="prize-panel">
+          <p class="prize-label">Current Prize Pool</p>
+          <div class="prize-amount">
+            <span class="prize-currency">$</span>
+            <span class="prize-value" id="prize-pool">0.00</span>
+          </div>
+          <p class="prize-eth"><span id="prize-eth">0.000</span> ETH in vault</p>
+
+          <div class="prize-meta">
+            <div class="meta-chip">
+              <span class="meta-val" id="participants">0</span>
+              <span class="meta-lbl">In the draw</span>
+            </div>
+            <div class="meta-chip">
+              <span class="meta-val" id="entries">0</span>
+              <span class="meta-lbl">Entries</span>
+            </div>
+            <div class="meta-chip highlight">
+              <span class="meta-val" id="your-odds">—</span>
+              <span class="meta-lbl">Your odds</span>
+            </div>
+          </div>
+
+          <div class="draw-actions">
+            <a href="https://flap.sh" target="_blank" rel="noopener" class="btn btn-primary btn-xl">Enter Draw — Buy $POT</a>
+            <button class="btn btn-ghost btn-xl" id="check-eligibility">Check Eligibility</button>
+          </div>
+        </div>
       </div>
     </section>
 
-    <section id="how" class="section">
-      <div class="section-head">
+    <!-- STATS STRIP -->
+    <section class="stats-strip">
+      <div class="stat-tile">
+        <span class="stat-tile-label">Vault Balance</span>
+        <span class="stat-tile-value green" id="vault-balance">$0.00</span>
+      </div>
+      <div class="stat-tile">
+        <span class="stat-tile-label">Fees Collected</span>
+        <span class="stat-tile-value" id="fees-collected">$0.00</span>
+      </div>
+      <div class="stat-tile">
+        <span class="stat-tile-label">Total Paid Out</span>
+        <span class="stat-tile-value" id="total-paid">$0.00</span>
+      </div>
+      <div class="stat-tile">
+        <span class="stat-tile-label">Draws Completed</span>
+        <span class="stat-tile-value" id="draws-count">0</span>
+      </div>
+    </section>
+
+    <!-- VAULT + ACTIVITY -->
+    <section id="vault" class="dual-panel">
+      <div class="panel-card vault-card">
+        <div class="panel-header">
+          <h2>The Vault</h2>
+          <span class="pill">100% on-chain</span>
+        </div>
+        <p class="panel-desc">Every buy &amp; sell tax flows here. Every 20 minutes the full balance goes to one eligible holder.</p>
+        <div class="vault-visual">
+          <div class="vault-bar"><div class="vault-fill" id="vault-fill"></div></div>
+          <div class="vault-labels">
+            <span>Empty</span>
+            <span id="vault-fill-pct">0%</span>
+            <span>Full</span>
+          </div>
+        </div>
+        <dl class="vault-stats">
+          <div><dt>Buy Tax</dt><dd>5%</dd></div>
+          <div><dt>Sell Tax</dt><dd>5%</dd></div>
+          <div><dt>Tax → Vault</dt><dd>100%</dd></div>
+          <div><dt>Min Hold</dt><dd>20K $POT</dd></div>
+        </dl>
+      </div>
+
+      <div class="panel-card activity-card">
+        <div class="panel-header">
+          <h2>Live Activity</h2>
+          <span class="pill live-pill"><span class="live-dot sm"></span> Streaming</span>
+        </div>
+        <ul class="activity-feed" id="activity-feed"></ul>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section id="how" class="how-section">
+      <div class="section-title">
         <h2>How it works</h2>
-        <p>Four steps. No forms. No team wallet.</p>
+        <p>Four steps. Zero intervention. Fully automated.</p>
       </div>
-      <div class="steps">
-        <article class="step">
-          <span class="step-n">1</span>
-          <h3>Buy $POT on Flap</h3>
-          <p>Launch and trade on Flap. Hold at least 20,000 tokens to qualify for draws.</p>
+      <div class="how-cards">
+        <article class="how-card" data-step="1">
+          <div class="how-icon">01</div>
+          <h3>Buy 20K+ $POT</h3>
+          <p>Launch on Flap. Hold the minimum — you're automatically entered.</p>
         </article>
-        <article class="step">
-          <span class="step-n">2</span>
-          <h3>Hold above minimum</h3>
-          <p>Eligible wallets auto-enter every draw while they hold.</p>
+        <article class="how-card" data-step="2">
+          <div class="how-icon">02</div>
+          <h3>Tax fills vault</h3>
+          <p>5% buy &amp; sell tax routes 100% to the prize vault via Flap.</p>
         </article>
-        <article class="step">
-          <span class="step-n">3</span>
-          <h3>Tax fills the vault</h3>
-          <p>5% buy &amp; sell tax routes 100% to the lottery vault via Flap.</p>
+        <article class="how-card" data-step="3">
+          <div class="how-icon">03</div>
+          <h3>Hold to stay in</h3>
+          <p>Every eligible wallet enters every draw while holding above minimum.</p>
         </article>
-        <article class="step">
-          <span class="step-n">4</span>
+        <article class="how-card" data-step="4">
+          <div class="how-icon">04</div>
           <h3>Win every 20 min</h3>
-          <p>Smart contract picks one holder. Vault empties. Repeat.</p>
+          <p>Smart contract picks one wallet. Vault empties. Cycle repeats.</p>
         </article>
       </div>
     </section>
 
-    <section id="launch" class="panel panel-launch">
-      <div class="launch-inner">
-        <div>
-          <p class="label">Token</p>
-          <h2>$POT via Flap</h2>
-          <p class="launch-copy">Tax token on Robinhood Chain, launched through Flap with vault enabled. Every swap feeds the prize pool automatically.</p>
-          <dl class="token-grid">
-            <div><dt>Name</dt><dd>DrawPot</dd></div>
-            <div><dt>Symbol</dt><dd>$POT</dd></div>
-            <div><dt>Launch</dt><dd>Flap</dd></div>
-            <div><dt>Chain</dt><dd>Robinhood Chain</dd></div>
-            <div><dt>Buy / Sell Tax</dt><dd>5% / 5%</dd></div>
-            <div><dt>Vault</dt><dd>Enabled · 100%</dd></div>
-            <div><dt>Payment</dt><dd>ETH</dd></div>
-            <div><dt>Min Entry</dt><dd>20,000 $POT</dd></div>
-            <div><dt>Draw</dt><dd>Every 20 min</dd></div>
-          </dl>
-        </div>
-        <div class="launch-card">
-          <div class="launch-card-icon">🎰</div>
-          <h3>Flap launch settings</h3>
-          <ul class="launch-checklist">
-            <li><strong>Enable Vault</strong> — on</li>
-            <li><strong>Payment token</strong> — ETH</li>
-            <li><strong>Buy / Sell tax</strong> — 5% / 5%</li>
-            <li><strong>Tax allocation</strong> — 100% Vault</li>
-          </ul>
-          <a href="https://flap.sh" target="_blank" rel="noopener" class="btn btn-primary btn-block">Open Flap</a>
-          <a href="https://docs.flap.sh/" target="_blank" rel="noopener" class="btn btn-ghost btn-block">Flap docs</a>
-        </div>
+    <!-- WINNERS -->
+    <section id="winners" class="winners-section">
+      <div class="section-title">
+        <h2>Winner History</h2>
+        <p>Every draw. Every winner. On-chain.</p>
+      </div>
+      <div class="winners-table-wrap">
+        <table class="winners-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Wallet</th>
+              <th>Prize</th>
+              <th>Time</th>
+              <th>Tx</th>
+            </tr>
+          </thead>
+          <tbody id="winners-body">
+            <tr class="empty-row">
+              <td colspan="5">Waiting for first draw…</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
-    <section id="winners" class="section">
-      <div class="section-head">
-        <h2>Recent winners</h2>
-      </div>
-      <div class="empty" id="winners-empty">
-        No draws yet — winners show up here after the first on-chain payout.
-      </div>
-    </section>
-
-    <section id="faq" class="section section-faq">
-      <div class="section-head">
+    <!-- FAQ -->
+    <section id="faq" class="faq-section">
+      <div class="section-title">
         <h2>FAQ</h2>
       </div>
-      <div class="faq">
-        <details open>
+      <div class="faq-grid">
+        <details class="faq-item" open>
           <summary>How do I enter?</summary>
-          <p>Buy $POT on Flap and hold at least 20,000 tokens on Robinhood Chain. You're automatically entered — no signup.</p>
+          <p>Buy $POT on Flap, hold 20,000+ tokens on Robinhood Chain. No forms — eligibility is automatic.</p>
         </details>
-        <details>
-          <summary>Why Flap + Robinhood Chain?</summary>
-          <p>Flap handles the tax token launch and vault routing. Robinhood Chain is where the lottery runs — EVM-compatible, ETH gas, Robinhood Wallet support.</p>
-        </details>
-        <details>
-          <summary>How do taxes work?</summary>
-          <p>5% on buys and sells. 100% of tax goes to the vault via Flap's vault system — that's the prize pool for draws.</p>
-        </details>
-        <details>
+        <details class="faq-item">
           <summary>How often are draws?</summary>
-          <p>Every 20 minutes. The full vault balance goes to one random eligible wallet.</p>
+          <p>Every 20 minutes. One random eligible wallet receives the entire vault balance.</p>
         </details>
-        <details>
-          <summary>Can I win more than once?</summary>
-          <p>Yes. Keep holding above the minimum and you're in every single draw.</p>
+        <details class="faq-item">
+          <summary>Where do fees go?</summary>
+          <p>5% buy/sell tax, 100% allocated to the vault through Flap's vault system.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Can I win multiple times?</summary>
+          <p>Yes. Hold above minimum and you're in every single draw.</p>
         </details>
       </div>
     </section>
   </main>
 
   <footer class="footer">
-    <div class="footer-top">
-      <a href="#" class="brand">
-        <img src="assets/logo.svg" alt="" width="24" height="24" />
-        <span>Draw<span class="accent">Pot</span></span>
-      </a>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="assets/logo.svg" alt="" width="28" height="28" />
+        <div>
+          <strong>Hood Lotto</strong>
+          <span>Every trade funds the next winner.</span>
+        </div>
+      </div>
       <div class="footer-links">
         <a href="https://flap.sh" target="_blank" rel="noopener">Flap</a>
         <a href="https://robinhoodchain.blockscout.com/" target="_blank" rel="noopener">Explorer</a>
-        <a href="https://x.com" target="_blank" rel="noopener">Twitter</a>
         <a href="https://github.com/ironiamison/drawpot" target="_blank" rel="noopener">GitHub</a>
       </div>
     </div>
-    <p class="fine">© 2026 DrawPot · drawpot.xyz · Not financial advice.</p>
+    <p class="footer-fine">© 2026 Hood Lotto · drawpot.xyz · Not financial advice. Play responsibly.</p>
   </footer>
+
+  <div class="draw-flash hidden" id="draw-flash">
+    <div class="draw-flash-inner">
+      <div class="flash-balls" id="flash-balls"></div>
+      <p class="flash-title">Drawing winner…</p>
+      <p class="flash-sub" id="flash-winner"></p>
+    </div>
+  </div>
 
   <div class="toast hidden" id="toast"></div>
   <script src="app.js"></script>
