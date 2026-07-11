@@ -1,38 +1,32 @@
-# Hood Lotto
+# DAWPOT
 
-The Robinhood lottery — on-chain on **Robinhood Chain**, launched via **[Flap](https://flap.sh)**.
+Live on-chain lottery dashboard for Robinhood Chain.
 
-Hold **$POT**, taxes fill the vault, one wallet wins every 20 minutes.
+**Vercel:** https://drawpot.vercel.app
 
-**Site:** [drawpot.xyz](https://drawpot.xyz) · **Live:** [GitHub Pages](https://ironiamison.github.io/drawpot/)
+## After launching on Flap
 
-## Flap launch config
+1. Paste your token contract in `config.js`:
+```js
+tokenAddress: "0xYourTokenHere",
+vaultAddress: "0xYourVaultHere", // optional
+flapUrl: "https://flap.sh/your-token-page",
+```
 
-Use these settings in Flap (matches your screenshot):
+2. Set Vercel env vars (optional, for server-side):
+```
+TOKEN_ADDRESS=0x...
+VAULT_ADDRESS=0x...
+```
 
-| Setting | Value |
-|---------|-------|
-| Enable Vault | **On** |
-| Payment Token | **ETH** |
-| Buy Tax | **5%** |
-| Sell Tax | **5%** |
-| Tax Allocation | **100% → Vault** (0% burn, 0% dividend, 0% LP) |
+3. Redeploy — site polls `/api/live` every 15s for real vault, holders, transfers.
 
-The red **"Total allocation must be 100%"** error means you need to assign all tax buckets — set Vault/Marketing to **100%** and leave the rest at 0.
-
-## Token
-
-| | |
-|---|---|
-| Name | DrawPot |
-| Symbol | $POT |
-| Launch | [Flap](https://flap.sh) |
-| Chain | Robinhood Chain (4663) |
-| Buy / Sell Tax | 5% / 5% |
-| Min entry | 20,000 $POT |
-
-## Local preview
+## Local dev
 
 ```bash
-python3 -m http.server 8080
+vercel dev
 ```
+
+## Custom domain
+
+Add `drawpot.xyz` in Vercel → Project Settings → Domains.
