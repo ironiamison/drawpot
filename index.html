@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DrawPot — On-Chain Lottery on Base</title>
+  <meta name="description" content="Hold $POT. Every trade fills the vault. Every 20 minutes one wallet wins it all." />
+  <meta property="og:title" content="DrawPot — On-Chain Lottery" />
+  <meta property="og:description" content="Every trade fills the pot. Every 20 minutes someone wins." />
+  <meta name="theme-color" content="#00c805" />
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <header class="header">
+    <a href="#" class="brand">
+      <img src="assets/logo.svg" alt="" width="28" height="28" />
+      <span>Draw<span class="accent">Pot</span></span>
+    </a>
+    <nav class="nav">
+      <a href="#draw">Live Draw</a>
+      <a href="#how">How it works</a>
+      <a href="#launch">Launch</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <a href="https://flaunch.gg" target="_blank" rel="noopener" class="btn btn-primary">Buy $POT</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-badge">
+        <span class="pulse"></span>
+        Launching on Base via Flaunch
+      </div>
+      <h1>Every trade fills the pot.<br /><span class="accent">Every 20 minutes someone wins.</span></h1>
+      <p class="hero-sub">Hold 20,000 $POT to enter. Trading fees stack in the vault. One wallet takes the full balance — fully on-chain, zero team control.</p>
+      <div class="hero-actions">
+        <a href="#draw" class="btn btn-primary btn-lg">View Live Draw</a>
+        <a href="https://flaunch.gg" target="_blank" rel="noopener" class="btn btn-ghost btn-lg">Flaunch →</a>
+        <button class="btn btn-ghost btn-lg" id="copy-contract" data-address="">Copy CA</button>
+      </div>
+      <div class="hero-stats">
+        <div><strong>20 min</strong><span>draw interval</span></div>
+        <div><strong>20K</strong><span>min hold</span></div>
+        <div><strong>100%</strong><span>on-chain</span></div>
+      </div>
+    </section>
+
+    <section id="draw" class="panel">
+      <div class="panel-head">
+        <div>
+          <p class="label">Live Draw</p>
+          <h2>Next winner in <span id="countdown" class="countdown">--:--</span></h2>
+        </div>
+        <span class="status" id="draw-status">Pre-launch</span>
+      </div>
+      <div class="stats-grid">
+        <article class="stat stat-featured">
+          <span class="stat-label">Prize Pool</span>
+          <span class="stat-value green" id="prize-pool">$0.00</span>
+        </article>
+        <article class="stat">
+          <span class="stat-label">Vault</span>
+          <span class="stat-value" id="vault-balance">$0.00</span>
+        </article>
+        <article class="stat">
+          <span class="stat-label">Holders In</span>
+          <span class="stat-value" id="participants">0</span>
+        </article>
+        <article class="stat">
+          <span class="stat-label">Total Paid Out</span>
+          <span class="stat-value" id="total-paid">—</span>
+        </article>
+      </div>
+    </section>
+
+    <section id="how" class="section">
+      <div class="section-head">
+        <h2>How it works</h2>
+        <p>Four steps. No forms. No team wallet.</p>
+      </div>
+      <div class="steps">
+        <article class="step">
+          <span class="step-n">1</span>
+          <h3>Buy $POT on Flaunch</h3>
+          <p>Fair launch on Base. Grab at least 20,000 tokens to qualify.</p>
+        </article>
+        <article class="step">
+          <span class="step-n">2</span>
+          <h3>Hold above minimum</h3>
+          <p>Eligible wallets auto-enter every draw while they hold.</p>
+        </article>
+        <article class="step">
+          <span class="step-n">3</span>
+          <h3>Fees fill the vault</h3>
+          <p>Buy &amp; sell fees route to the on-chain prize vault.</p>
+        </article>
+        <article class="step">
+          <span class="step-n">4</span>
+          <h3>Win every 20 min</h3>
+          <p>Smart contract picks one holder. Vault empties. Repeat.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="launch" class="panel panel-launch">
+      <div class="launch-inner">
+        <div>
+          <p class="label">Token</p>
+          <h2>$POT on Flaunch</h2>
+          <p class="launch-copy">Fair launch on Base with creator revenue + community buybacks built in. Fees from every swap grow the lottery vault automatically.</p>
+          <dl class="token-grid">
+            <div><dt>Name</dt><dd>DrawPot</dd></div>
+            <div><dt>Symbol</dt><dd>$POT</dd></div>
+            <div><dt>Chain</dt><dd>Base</dd></div>
+            <div><dt>Min Entry</dt><dd>20,000 $POT</dd></div>
+            <div><dt>Draw</dt><dd>Every 20 min</dd></div>
+            <div><dt>Launch</dt><dd id="launch-status">Flaunch soon</dd></div>
+          </dl>
+        </div>
+        <div class="launch-card">
+          <div class="launch-card-icon">🎰</div>
+          <h3>Ready to play?</h3>
+          <p>Token goes live on Flaunch. Buy, hold, and you're in every draw.</p>
+          <a href="https://flaunch.gg" target="_blank" rel="noopener" class="btn btn-primary btn-block">Open Flaunch</a>
+          <a href="https://docs.flaunch.gg/" target="_blank" rel="noopener" class="btn btn-ghost btn-block">Flaunch docs</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="winners" class="section">
+      <div class="section-head">
+        <h2>Recent winners</h2>
+      </div>
+      <div class="empty" id="winners-empty">
+        No draws yet — winners show up here after the first on-chain payout.
+      </div>
+    </section>
+
+    <section id="faq" class="section section-faq">
+      <div class="section-head">
+        <h2>FAQ</h2>
+      </div>
+      <div class="faq">
+        <details open>
+          <summary>How do I enter?</summary>
+          <p>Buy $POT on Flaunch and hold at least 20,000 tokens. You're automatically entered — no signup.</p>
+        </details>
+        <details>
+          <summary>Why Flaunch?</summary>
+          <p>Flaunch gives a fair fixed-price launch on Base, with trading fees split between the project vault and community buybacks. Perfect for a self-funding lottery.</p>
+        </details>
+        <details>
+          <summary>How often are draws?</summary>
+          <p>Every 20 minutes. The full vault balance goes to one random eligible wallet.</p>
+        </details>
+        <details>
+          <summary>Can I win more than once?</summary>
+          <p>Yes. Keep holding above the minimum and you're in every single draw.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-top">
+      <a href="#" class="brand">
+        <img src="assets/logo.svg" alt="" width="24" height="24" />
+        <span>Draw<span class="accent">Pot</span></span>
+      </a>
+      <div class="footer-links">
+        <a href="https://flaunch.gg" target="_blank" rel="noopener">Flaunch</a>
+        <a href="https://x.com" target="_blank" rel="noopener">Twitter</a>
+        <a href="https://github.com" id="github-link" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+    <p class="fine">© 2026 DrawPot · drawpot.xyz · Not financial advice.</p>
+  </footer>
+
+  <div class="toast hidden" id="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
