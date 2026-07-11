@@ -3,20 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hood Lotto — The Robinhood Lottery</title>
-  <meta name="description" content="Every trade fills the vault. Every 20 minutes one wallet wins. On-chain lottery on Robinhood Chain." />
-  <meta property="og:title" content="Hood Lotto — The Robinhood Lottery" />
-  <meta property="og:description" content="Hold $POT. Watch the pot grow. Win every 20 minutes." />
-  <meta name="theme-color" content="#00c805" />
-  <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
+  <title>DAWPOT — Robinhood Crypto Tax Token · LOTTO</title>
+  <meta name="description" content="Every trade fills the vault. Every 20 minutes one wallet wins. Robinhood Chain lottery via Flap." />
+  <meta property="og:title" content="DAWPOT LOTTO" />
+  <meta property="og:description" content="Robinhood Crypto Tax Token Distribution — hold $POT, win every 20 min." />
+  <meta property="og:image" content="assets/logo.png" />
+  <meta name="theme-color" content="#00ff41" />
+  <link rel="icon" href="assets/logo.png" type="image/png" />
+  <link rel="apple-touch-icon" href="assets/logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <canvas id="particles" aria-hidden="true"></canvas>
   <div class="grid-bg" aria-hidden="true"></div>
+  <img src="assets/logo.png" alt="" class="logo-watermark logo-wm-1" aria-hidden="true" />
+  <img src="assets/logo.png" alt="" class="logo-watermark logo-wm-2" aria-hidden="true" />
 
   <div class="ticker" aria-hidden="true">
     <div class="ticker-track" id="ticker-track"></div>
@@ -24,10 +28,10 @@
 
   <header class="header">
     <a href="#" class="brand">
-      <img src="assets/logo.svg" alt="" width="32" height="32" />
+      <img src="assets/logo.png" alt="DAWPOT" class="brand-logo" width="48" height="48" />
       <div class="brand-text">
-        <span class="brand-name">Hood Lotto</span>
-        <span class="brand-tag">The Robinhood Lottery</span>
+        <span class="brand-name gradient-text">DAWPOT</span>
+        <span class="brand-tag">Robinhood Crypto Tax Token</span>
       </div>
     </a>
     <nav class="nav">
@@ -44,35 +48,58 @@
   </header>
 
   <main>
-    <!-- LIVE DRAW HERO -->
+    <!-- HERO + LOGO -->
+    <section class="hero-banner">
+      <div class="hero-logo-wrap">
+        <div class="hero-glow-ring"></div>
+        <img src="assets/logo.png" alt="DAWPOT Lotto" class="hero-logo" />
+      </div>
+      <div class="hero-copy">
+        <span class="lotto-pill">★ LOTTO ★</span>
+        <h1 class="gradient-text hero-title">DAWPOT</h1>
+        <p class="hero-subtitle">ROBINHOOD CRYPTO TAX TOKEN · DISTRIBUTION</p>
+        <p class="hero-desc">Every trade fills the vault. Every 20 minutes one wallet wins it all.</p>
+      </div>
+    </section>
+
+    <!-- LIVE DRAW -->
     <section id="live" class="live-hero">
       <div class="live-badge">
         <span class="live-dot"></span>
-        LIVE ON ROBINHOOD CHAIN
+        LIVE ON ROBINHOOD CHAIN · FLAP
       </div>
 
       <div class="live-grid">
         <div class="draw-stage">
+          <div class="bowl-wrap">
+            <div class="bowl-glass">
+              <img src="assets/logo.png" alt="" class="bowl-logo-mini" aria-hidden="true" />
+              <div class="lotto-balls" id="lotto-balls" aria-hidden="true"></div>
+            </div>
+          </div>
+
           <div class="countdown-ring-wrap">
             <svg class="countdown-ring" viewBox="0 0 200 200">
               <circle class="ring-bg" cx="100" cy="100" r="88" />
               <circle class="ring-progress" id="ring-progress" cx="100" cy="100" r="88" />
             </svg>
             <div class="countdown-center">
+              <img src="assets/logo.png" alt="" class="countdown-logo" width="36" height="36" />
               <span class="countdown-label">Next Draw</span>
               <span class="countdown-time" id="countdown">--:--</span>
               <span class="countdown-sub" id="draw-phase">Entries open</span>
             </div>
           </div>
-
-          <div class="lotto-balls" id="lotto-balls" aria-hidden="true"></div>
         </div>
 
         <div class="prize-panel">
+          <div class="prize-panel-logo">
+            <img src="assets/logo.png" alt="" width="56" height="56" />
+          </div>
           <p class="prize-label">Current Prize Pool</p>
           <div class="prize-amount">
             <span class="prize-currency">$</span>
-            <span class="prize-value" id="prize-pool">0.00</span>
+            <span class="prize-value gradient-text" id="prize-pool">0.00</span>
           </div>
           <p class="prize-eth"><span id="prize-eth">0.000</span> ETH in vault</p>
 
@@ -86,22 +113,22 @@
               <span class="meta-lbl">Entries</span>
             </div>
             <div class="meta-chip highlight">
-              <span class="meta-val" id="your-odds">—</span>
+              <span class="meta-val gold-text" id="your-odds">—</span>
               <span class="meta-lbl">Your odds</span>
             </div>
           </div>
 
           <div class="draw-actions">
             <a href="https://flap.sh" target="_blank" rel="noopener" class="btn btn-primary btn-xl">Enter Draw — Buy $POT</a>
-            <button class="btn btn-ghost btn-xl" id="check-eligibility">Check Eligibility</button>
+            <button class="btn btn-gold btn-xl" id="check-eligibility">Check Eligibility</button>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- STATS STRIP -->
     <section class="stats-strip">
       <div class="stat-tile">
+        <img src="assets/logo.png" alt="" class="stat-logo" aria-hidden="true" />
         <span class="stat-tile-label">Vault Balance</span>
         <span class="stat-tile-value green" id="vault-balance">$0.00</span>
       </div>
@@ -111,7 +138,7 @@
       </div>
       <div class="stat-tile">
         <span class="stat-tile-label">Total Paid Out</span>
-        <span class="stat-tile-value" id="total-paid">$0.00</span>
+        <span class="stat-tile-value gold-text" id="total-paid">$0.00</span>
       </div>
       <div class="stat-tile">
         <span class="stat-tile-label">Draws Completed</span>
@@ -119,11 +146,10 @@
       </div>
     </section>
 
-    <!-- VAULT + ACTIVITY -->
     <section id="vault" class="dual-panel">
       <div class="panel-card vault-card">
         <div class="panel-header">
-          <h2>The Vault</h2>
+          <h2><img src="assets/logo.png" alt="" class="panel-icon" /> The Vault</h2>
           <span class="pill">100% on-chain</span>
         </div>
         <p class="panel-desc">Every buy &amp; sell tax flows here. Every 20 minutes the full balance goes to one eligible holder.</p>
@@ -131,7 +157,7 @@
           <div class="vault-bar"><div class="vault-fill" id="vault-fill"></div></div>
           <div class="vault-labels">
             <span>Empty</span>
-            <span id="vault-fill-pct">0%</span>
+            <span id="vault-fill-pct" class="gold-text">0%</span>
             <span>Full</span>
           </div>
         </div>
@@ -152,37 +178,22 @@
       </div>
     </section>
 
-    <!-- HOW IT WORKS -->
     <section id="how" class="how-section">
       <div class="section-title">
-        <h2>How it works</h2>
-        <p>Four steps. Zero intervention. Fully automated.</p>
+        <img src="assets/logo.png" alt="" class="section-logo" />
+        <div>
+          <h2 class="gradient-text">How it works</h2>
+          <p>Four steps. Zero intervention. Fully automated.</p>
+        </div>
       </div>
       <div class="how-cards">
-        <article class="how-card" data-step="1">
-          <div class="how-icon">01</div>
-          <h3>Buy 20K+ $POT</h3>
-          <p>Launch on Flap. Hold the minimum — you're automatically entered.</p>
-        </article>
-        <article class="how-card" data-step="2">
-          <div class="how-icon">02</div>
-          <h3>Tax fills vault</h3>
-          <p>5% buy &amp; sell tax routes 100% to the prize vault via Flap.</p>
-        </article>
-        <article class="how-card" data-step="3">
-          <div class="how-icon">03</div>
-          <h3>Hold to stay in</h3>
-          <p>Every eligible wallet enters every draw while holding above minimum.</p>
-        </article>
-        <article class="how-card" data-step="4">
-          <div class="how-icon">04</div>
-          <h3>Win every 20 min</h3>
-          <p>Smart contract picks one wallet. Vault empties. Cycle repeats.</p>
-        </article>
+        <article class="how-card"><div class="how-icon">01</div><h3>Buy 20K+ $POT</h3><p>Launch on Flap. Hold the minimum — you're automatically entered.</p></article>
+        <article class="how-card"><div class="how-icon">02</div><h3>Tax fills vault</h3><p>5% buy &amp; sell tax routes 100% to the prize vault via Flap.</p></article>
+        <article class="how-card"><div class="how-icon">03</div><h3>Hold to stay in</h3><p>Every eligible wallet enters every draw while holding above minimum.</p></article>
+        <article class="how-card"><div class="how-icon">04</div><h3>Win every 20 min</h3><p>Smart contract picks one wallet. Vault empties. Cycle repeats.</p></article>
       </div>
     </section>
 
-    <!-- WINNERS -->
     <section id="winners" class="winners-section">
       <div class="section-title">
         <h2>Winner History</h2>
@@ -191,28 +202,17 @@
       <div class="winners-table-wrap">
         <table class="winners-table">
           <thead>
-            <tr>
-              <th>#</th>
-              <th>Wallet</th>
-              <th>Prize</th>
-              <th>Time</th>
-              <th>Tx</th>
-            </tr>
+            <tr><th>#</th><th>Wallet</th><th>Prize</th><th>Time</th><th>Tx</th></tr>
           </thead>
           <tbody id="winners-body">
-            <tr class="empty-row">
-              <td colspan="5">Waiting for first draw…</td>
-            </tr>
+            <tr class="empty-row"><td colspan="5">Waiting for first draw…</td></tr>
           </tbody>
         </table>
       </div>
     </section>
 
-    <!-- FAQ -->
     <section id="faq" class="faq-section">
-      <div class="section-title">
-        <h2>FAQ</h2>
-      </div>
+      <div class="section-title"><h2>FAQ</h2></div>
       <div class="faq-grid">
         <details class="faq-item" open>
           <summary>How do I enter?</summary>
@@ -235,12 +235,14 @@
   </main>
 
   <footer class="footer">
+    <img src="assets/logo.png" alt="" class="footer-watermark" aria-hidden="true" />
     <div class="footer-inner">
       <div class="footer-brand">
-        <img src="assets/logo.svg" alt="" width="28" height="28" />
+        <img src="assets/logo.png" alt="DAWPOT" class="footer-logo" width="72" height="72" />
         <div>
-          <strong>Hood Lotto</strong>
-          <span>Every trade funds the next winner.</span>
+          <strong class="gradient-text">DAWPOT</strong>
+          <span>Robinhood Crypto Tax Token · LOTTO</span>
+          <span class="lotto-pill sm">★ LOTTO ★</span>
         </div>
       </div>
       <div class="footer-links">
@@ -249,14 +251,15 @@
         <a href="https://github.com/ironiamison/drawpot" target="_blank" rel="noopener">GitHub</a>
       </div>
     </div>
-    <p class="footer-fine">© 2026 Hood Lotto · drawpot.xyz · Not financial advice. Play responsibly.</p>
+    <p class="footer-fine">© 2026 DAWPOT · drawpot.xyz · Not financial advice. Play responsibly.</p>
   </footer>
 
   <div class="draw-flash hidden" id="draw-flash">
     <div class="draw-flash-inner">
+      <img src="assets/logo.png" alt="" class="flash-logo" />
       <div class="flash-balls" id="flash-balls"></div>
-      <p class="flash-title">Drawing winner…</p>
-      <p class="flash-sub" id="flash-winner"></p>
+      <p class="flash-title gradient-text">Drawing winner…</p>
+      <p class="flash-sub gold-text" id="flash-winner"></p>
     </div>
   </div>
 

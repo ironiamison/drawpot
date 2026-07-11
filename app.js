@@ -1,8 +1,10 @@
-/* Hood Lotto — live interactive layer */
+/* DAWPOT — live layer + 3D lotto balls */
 
 const DRAW_MS = 20 * 60 * 1000;
 const RING_C = 553;
 const ETH_USD = 3400;
+
+const BALL_NUMBERS = [7, 23, 42, 88, 14, 56];
 
 const state = {
   prizeUsd: 0,
@@ -21,20 +23,19 @@ const state = {
 const ACTIVITY_TYPES = [
   { type: "buy", icon: "↑", tpl: (a) => `<strong>${a}</strong> bought $POT` },
   { type: "sell", icon: "↓", tpl: (a) => `<strong>${a}</strong> sold $POT` },
-  { type: "vault", icon: "$", tpl: (v) => `Vault <strong>+${v} ETH</strong> from tax` },
+  { type: "vault", icon: "★", tpl: (v) => `Vault <strong>+${v} ETH</strong> from tax` },
   { type: "entry", icon: "✓", tpl: (a) => `<strong>${a}</strong> entered the draw` },
 ];
 
 const TICKER_ITEMS = [
-  "Hood Lotto — The Robinhood Lottery",
+  "DAWPOT LOTTO",
+  "Robinhood Crypto Tax Token",
   "Every 20 Minutes Someone Wins",
   "Hold 20K $POT To Enter",
   "5% Tax → 100% Vault",
   "Live On Robinhood Chain",
   "Launch Via Flap",
 ];
-
-// ── Utils ──
 
 function $(id) { return document.getElementById(id); }
 
@@ -47,9 +48,7 @@ function fmtUsd(n) {
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function fmtEth(n) {
-  return n.toFixed(4);
-}
+function fmtEth(n) { return n.toFixed(4); }
 
 function nextDrawMs() {
   const now = Date.now();
@@ -64,46 +63,42 @@ function showToast(msg) {
   showToast._t = setTimeout(() => el.classList.add("hidden"), 2800);
 }
 
-function animateValue(el, from, to, duration, fmt) {
-  const start = performance.now();
-  function frame(now) {
-    const t = Math.min((now - start) / duration, 1);
-    const eased = 1 - Math.pow(1 - t, 3);
-    el.textContent = fmt(from + (to - from) * eased);
-    if (t < 1) requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
-}
-
-// ── Ticker ──
-
 function initTicker() {
   const track = $("ticker-track");
   const items = [...TICKER_ITEMS, ...TICKER_ITEMS];
   track.innerHTML = items.map((t) => `<span>${t}</span>`).join("");
 }
 
-// ── Lotto balls ──
+// ── 3D Lotto balls (logo style: green + gold center) ──
+
+function createBall(num, isGold = false) {
+  const el = document.createElement("div");
+  el.className = `lotto-ball ${isGold ? "lotto-ball--gold" : "lotto-ball--green"}`;
+  if (isGold) {
+    el.innerHTML = `<span class="ball-feather">🪶</span>`;
+  } else {
+    el.innerHTML = `<span class="ball-num">${String(num).padStart(2, "0")}</span>`;
+  }
+  return el;
+}
 
 function initBalls(container, count = 6) {
   container.innerHTML = "";
-  for (let i = 0; i < count; i++) {
-    const b = document.createElement("div");
-    b.className = "ball" + (i === count - 1 ? " green" : "");
-    b.textContent = String(Math.floor(Math.random() * 90) + 10);
-    container.appendChild(b);
-  }
+  const nums = [...BALL_NUMBERS].sort(() => Math.random() - 0.5).slice(0, count - 1);
+  nums.forEach((n) => container.appendChild(createBall(n)));
+  container.appendChild(createBall(0, true));
 }
 
 function shuffleBalls(container) {
-  container.querySelectorAll(".ball").forEach((b) => {
+  container.querySelectorAll(".lotto-ball").forEach((b, i) => {
     b.classList.add("spin");
-    b.textContent = String(Math.floor(Math.random() * 90) + 10);
-    setTimeout(() => b.classList.remove("spin"), 400);
+    if (!b.classList.contains("lotto-ball--gold")) {
+      const numEl = b.querySelector(".ball-num");
+      if (numEl) numEl.textContent = String(Math.floor(Math.random() * 90) + 1).padStart(2, "0");
+    }
+    setTimeout(() => b.classList.remove("spin"), 450);
   });
 }
-
-// ── Countdown ring ──
 
 function updateCountdown() {
   const remaining = nextDrawMs();
@@ -112,15 +107,15 @@ function updateCountdown() {
   const sec = totalSec % 60;
   $("countdown").textContent = `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 
-  const pct = 1 - remaining / DRAW_MS;
-  $("ring-progress").style.strokeDashoffset = RING_C * (1 - pct);
+  $("ring-progress").style.strokeDashoffset = RING_C * (1 - (1 - remaining / DRAW_MS));
 
   const phase = $("draw-phase");
   if (totalSec <= 10 && totalSec > 0) {
     phase.textContent = "Drawing soon…";
-    phase.style.color = "#ff5000";
+    phase.style.color = "#ffd700";
   } else if (state.drawing) {
     phase.textContent = "Selecting winner…";
+    phase.style.color = "#00ff41";
   } else {
     phase.textContent = "Entries open";
     phase.style.color = "";
@@ -132,8 +127,6 @@ function updateCountdown() {
     triggerDraw();
   }
 }
-
-// ── Live stats (demo until contract wired) ──
 
 function tickStats() {
   const taxBump = (Math.random() * 0.0008 + 0.0002) * ETH_USD;
@@ -168,8 +161,6 @@ function updateOdds() {
   $("your-odds").textContent = state.connected ? odds : "Connect";
 }
 
-// ── Activity feed ──
-
 function addActivity(item) {
   const feed = $("activity-feed");
   const li = document.createElement("li");
@@ -181,20 +172,13 @@ function addActivity(item) {
   `;
   feed.prepend(li);
   while (feed.children.length > 12) feed.lastChild.remove();
-
-  feed.querySelectorAll(".activity-time").forEach((t, i) => {
-    if (i === 0) t.textContent = "now";
-    else if (i < 4) t.textContent = `${i}s`;
-    else t.textContent = `${i * 3}s`;
-  });
 }
 
 function randomActivity() {
   const t = ACTIVITY_TYPES[Math.floor(Math.random() * ACTIVITY_TYPES.length)];
   let body;
   if (t.type === "vault") {
-    const v = (Math.random() * 0.05 + 0.01).toFixed(3);
-    body = t.tpl(v);
+    body = t.tpl((Math.random() * 0.05 + 0.01).toFixed(3));
   } else {
     body = t.tpl(randAddr());
   }
@@ -204,8 +188,6 @@ function randomActivity() {
 function seedActivity() {
   for (let i = 0; i < 5; i++) randomActivity();
 }
-
-// ── Draw animation ──
 
 function triggerDraw() {
   state.drawing = true;
@@ -217,19 +199,10 @@ function triggerDraw() {
   const winner = randAddr();
   const prize = state.prizeUsd;
 
-  let spins = 0;
-  const spinInterval = setInterval(() => {
-    flashBalls.querySelectorAll(".ball").forEach((b) => {
-      b.textContent = String(Math.floor(Math.random() * 90) + 10);
-    });
-    spins++;
-    if (spins > 8) clearInterval(spinInterval);
-  }, 120);
+  const spinInterval = setInterval(() => shuffleBalls(flashBalls), 150);
+  setTimeout(() => clearInterval(spinInterval), 1200);
 
-  setTimeout(() => {
-    $("flash-winner").textContent = winner;
-    clearInterval(spinInterval);
-  }, 1500);
+  setTimeout(() => { $("flash-winner").textContent = winner; }, 1500);
 
   setTimeout(() => {
     flash.classList.add("hidden");
@@ -242,12 +215,8 @@ function triggerDraw() {
       state.prizeEth = 0;
       state.vaultUsd = 0;
       addWinner(winner, prize);
-      addActivity({
-        type: "vault",
-        icon: "★",
-        body: `<strong>${winner}</strong> won <strong>$${fmtUsd(prize)}</strong>`,
-      });
-      showToast(`Winner: ${winner}`);
+      addActivity({ type: "vault", icon: "🏆", body: `<strong>${winner}</strong> won <strong>$${fmtUsd(prize)}</strong>` });
+      showToast(`🏆 Winner: ${winner}`);
     }
 
     shuffleBalls($("lotto-balls"));
@@ -271,39 +240,60 @@ function addWinner(wallet, prize) {
   tbody.prepend(tr);
 }
 
-// ── Particles ──
+// ── Confetti particles (green squares + gold stars like logo) ──
 
 function initParticles() {
   const canvas = $("particles");
   const ctx = canvas.getContext("2d");
-  let w, h, dots;
+  let w, h, parts;
 
   function resize() {
     w = canvas.width = window.innerWidth;
     h = canvas.height = window.innerHeight;
-    dots = Array.from({ length: 40 }, () => ({
+    parts = Array.from({ length: 55 }, () => ({
       x: Math.random() * w,
       y: Math.random() * h,
-      r: Math.random() * 1.5 + 0.5,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
-      a: Math.random() * 0.3 + 0.1,
+      size: Math.random() * 4 + 2,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      rot: Math.random() * 360,
+      vr: (Math.random() - 0.5) * 2,
+      gold: Math.random() > 0.65,
+      a: Math.random() * 0.4 + 0.15,
     }));
   }
 
   function draw() {
     ctx.clearRect(0, 0, w, h);
-    dots.forEach((d) => {
-      d.x += d.vx;
-      d.y += d.vy;
-      if (d.x < 0) d.x = w;
-      if (d.x > w) d.x = 0;
-      if (d.y < 0) d.y = h;
-      if (d.y > h) d.y = 0;
-      ctx.beginPath();
-      ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(0,200,5,${d.a})`;
-      ctx.fill();
+    parts.forEach((p) => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rot += p.vr;
+      if (p.x < 0) p.x = w;
+      if (p.x > w) p.x = 0;
+      if (p.y < 0) p.y = h;
+      if (p.y > h) p.y = 0;
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rot * Math.PI) / 180);
+      ctx.globalAlpha = p.a;
+
+      if (p.gold) {
+        ctx.fillStyle = "#ffd700";
+        ctx.beginPath();
+        for (let i = 0; i < 4; i++) {
+          const a = (i * Math.PI) / 2;
+          const r = i % 2 === 0 ? p.size : p.size * 0.4;
+          ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        ctx.fillStyle = "#00ff41";
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+      }
+      ctx.restore();
     });
     requestAnimationFrame(draw);
   }
@@ -312,8 +302,6 @@ function initParticles() {
   window.addEventListener("resize", resize);
   draw();
 }
-
-// ── Events ──
 
 $("copy-contract").addEventListener("click", async (e) => {
   const addr = e.currentTarget.dataset.address;
@@ -336,8 +324,6 @@ $("check-eligibility").addEventListener("click", () => {
   if (!state.connected) return showToast("Connect wallet first");
   showToast("Need 20,000+ $POT to enter draws");
 });
-
-// ── Boot ──
 
 initTicker();
 initBalls($("lotto-balls"));
