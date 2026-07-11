@@ -502,6 +502,21 @@ main {
   margin-bottom: 0.75rem;
 }
 
+.launch-checklist {
+  list-style: none;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.launch-checklist strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
 /* Winners / FAQ */
 .empty {
   background: var(--surface);

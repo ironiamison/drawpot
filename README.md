@@ -1,22 +1,24 @@
 # DrawPot
 
-On-chain lottery on **Robinhood Chain**. Hold **$POT**, fees fill the vault, one wallet wins every 20 minutes.
+On-chain lottery on **Robinhood Chain**, launched via **[Flap](https://flap.sh)**.
 
-**Site:** [drawpot.xyz](https://drawpot.xyz) · **Chain:** [Robinhood Chain](https://docs.robinhood.com/chain/) (ID 4663)
+Hold **$POT**, taxes fill the vault, one wallet wins every 20 minutes.
 
-## Deploy (GitHub Pages)
+**Site:** [drawpot.xyz](https://drawpot.xyz)
 
-1. Push this repo to GitHub
-2. Settings → Pages → Source: **Deploy from branch** → `main` / root
-3. Add DNS for `drawpot.xyz`:
-   - `A` → `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
-   - or `CNAME` → `<username>.github.io`
+## Flap launch config
 
-## Local preview
+Use these settings in Flap (matches your screenshot):
 
-```bash
-python3 -m http.server 8080
-```
+| Setting | Value |
+|---------|-------|
+| Enable Vault | **On** |
+| Payment Token | **ETH** |
+| Buy Tax | **5%** |
+| Sell Tax | **5%** |
+| Tax Allocation | **100% → Vault** (0% burn, 0% dividend, 0% LP) |
+
+The red **"Total allocation must be 100%"** error means you need to assign all tax buckets — set Vault/Marketing to **100%** and leave the rest at 0.
 
 ## Token
 
@@ -24,8 +26,13 @@ python3 -m http.server 8080
 |---|---|
 | Name | DrawPot |
 | Symbol | $POT |
-| Chain | Robinhood Chain |
-| Chain ID | 4663 |
-| Explorer | [blockscout](https://robinhoodchain.blockscout.com/) |
-| Wallet | [Robinhood Wallet](https://robinhood.com/us/en/support/articles/robinhood-wallet/) |
+| Launch | [Flap](https://flap.sh) |
+| Chain | Robinhood Chain (4663) |
+| Buy / Sell Tax | 5% / 5% |
 | Min entry | 20,000 $POT |
+
+## Local preview
+
+```bash
+python3 -m http.server 8080
+```

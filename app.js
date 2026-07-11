@@ -27,7 +27,7 @@ function updateCountdown() {
 document.getElementById("copy-contract").addEventListener("click", async (e) => {
   const addr = e.currentTarget.dataset.address;
   if (!addr) {
-    showToast("Contract not live yet — deploying on Robinhood Chain");
+    showToast("Contract not live yet — launching on Flap");
     return;
   }
   try {
