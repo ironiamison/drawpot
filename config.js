@@ -1,12 +1,11 @@
-// POTLUCK site config — set token + vault addresses after the Pons V2 launch.
-// NOTE: current addresses are from the old Flap launch; replace them when the
-// token relaunches on Pons (deploy DrawPotPonsVault first, it is the
-// creatorFeeRecipient in the Pons launch params).
+// POTLUCK site config — vault is live on Robinhood Chain; set tokenAddress
+// right after the $LUCK launch on Pons V2 (vault 0xa981… is the
+// creatorFeeRecipient in the launch params).
 window.POTLUCK_CONFIG = {
-  tokenAddress: "0x442b4591f357cd8de782442c732320317bbf7777",
-  vaultAddress: "0xA0B2CAa5cf60d882Df8A3cfA0a107e340CdBe6e1",
-  lotteryAddress: "0xA0B2CAa5cf60d882Df8A3cfA0a107e340CdBe6e1",
-  vaultDeploymentBlock: 7886159,
+  tokenAddress: "", // set at Pons launch
+  vaultAddress: "0xa981d27b27c6f60931e6c99a1bcf22ed2a2e8a9e",
+  lotteryAddress: "0xa981d27b27c6f60931e6c99a1bcf22ed2a2e8a9e",
+  vaultDeploymentBlock: 53367042,
 
   siteUrl: "https://holdpot.xyz",
 
