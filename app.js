@@ -103,7 +103,11 @@ function tickJackpot() {
 }
 
 function updateCountdown() {
-  const target = state.nextDrawTime ? state.nextDrawTime * 1000 : Date.now() + DRAW_MS - (Date.now() % DRAW_MS);
+  let target = state.nextDrawTime ? state.nextDrawTime * 1000 : Date.now() + DRAW_MS - (Date.now() % DRAW_MS);
+  // If the on-chain draw is overdue (keeper hasn't fired yet), roll the target
+  // forward in whole intervals so the countdown ticks steadily instead of
+  // sitting at 00:00 / flapping between values.
+  while (target <= Date.now()) target += DRAW_MS;
   const remaining = Math.max(0, target - Date.now());
   const sec = Math.floor(remaining / 1000);
   const min = Math.floor(sec / 60);
@@ -124,16 +128,28 @@ function updateCountdown() {
     phase.textContent = state.live ? "Auto-payout pending" : "Launch pending";
   }
 
-  const slot = Math.floor(Date.now() / DRAW_MS);
-  if (sec <= 1 && slot !== state.lastDrawSlot) {
-    state.lastDrawSlot = slot;
+  // Fire the draw-moment overlay once per countdown target (not per wall-clock
+  // slot, which caused repeat popups while a draw was overdue).
+  if (sec <= 1 && state.lastDrawSlot !== target) {
+    state.lastDrawSlot = target;
     onDrawMoment();
     startDrawPollBurst();
   }
 }
 
+// Any open tab can trigger the draw: the vault enforces timing on-chain, so a
+// public nudge is harmless. Throttled + staggered so a crowd of visitors
+// doesn't fire duplicate transactions at the same instant.
+let lastKeeperNudge = 0;
+function nudgeKeeper() {
+  if (Date.now() - lastKeeperNudge < 60_000) return;
+  lastKeeperNudge = Date.now();
+  setTimeout(() => fetch("/api/keeper").catch(() => {}), 500 + Math.random() * 8000);
+}
+
 let drawPollBurstTimer = null;
 function startDrawPollBurst() {
+  nudgeKeeper();
   clearInterval(drawPollBurstTimer);
   let ticks = 0;
   drawPollBurstTimer = setInterval(() => {
@@ -192,7 +208,12 @@ function renderStats(data) {
     renderPot();
   }
   state.participants = data.eligibleHolders ?? data.entrants ?? data.holders ?? 0;
-  state.nextDrawTime = data.nextDrawTime || 0;
+  // Keep the last known draw time if a refresh comes back empty — prevents the
+  // countdown from jumping to the wall-clock fallback and back.
+  state.nextDrawTime = data.nextDrawTime || state.nextDrawTime;
+  // Draw overdue on-chain? Nudge the keeper (throttled) so it fires even if
+  // no cron is running.
+  if (state.nextDrawTime && Date.now() / 1000 > state.nextDrawTime + 5) nudgeKeeper();
 
   $("fees-collected").textContent = state.live ? "Live" : "—";
   const totalPaidEth = Number(BigInt(data.totalPaidOut || "0")) / 1e18;
@@ -591,6 +612,11 @@ $("copy-contract").addEventListener("click", async () => {
   if (!a) return showToast("Token not launched yet");
   await navigator.clipboard.writeText(a);
   showToast("Copied");
+});
+
+$("announcement-ca")?.addEventListener("click", async () => {
+  await navigator.clipboard.writeText($("announcement-ca").textContent.trim());
+  showToast("Contract address copied");
 });
 
 $("connect-wallet").addEventListener("click", connectWallet);

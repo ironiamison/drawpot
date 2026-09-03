@@ -3,6 +3,10 @@
   "installCommand": "npm install",
   "buildCommand": null,
   "outputDirectory": ".",
+  "functions": {
+    "api/keeper.js": { "maxDuration": 60 },
+    "api/live.js": { "maxDuration": 30 }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" }
   ],

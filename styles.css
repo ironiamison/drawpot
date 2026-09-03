@@ -158,6 +158,21 @@ main {
 .announcement strong { color: #fff; font-weight: 600; }
 .announcement a { color: var(--brand); font-weight: 600; white-space: nowrap; }
 .announcement-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 0 4px rgba(255,197,61,.13); }
+.announcement-ca {
+  font-family: "DM Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
+  color: var(--brand);
+  background: rgba(255, 197, 61, 0.1);
+  border: 1px solid rgba(255, 197, 61, 0.22);
+  border-radius: 6px;
+  padding: 0.15rem 0.45rem;
+  cursor: pointer;
+  word-break: break-all;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+.announcement-ca:hover { background: rgba(255, 197, 61, 0.2); }
+.announcement-ca::after { content: " ⧉"; opacity: 0.65; }
 
 /* Hero */
 .hero {

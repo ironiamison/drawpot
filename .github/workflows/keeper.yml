@@ -1,0 +1,14 @@
+name: keeper
+# Backstop for the Vercel cron (Hobby plan crons don't run every minute).
+# The endpoint is safe to hit at any time: the vault rejects early draws on-chain.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  draw:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger keeper
+        run: curl -s -m 120 https://holdpot.xyz/api/keeper || true
