@@ -40,6 +40,11 @@ export default async function handler(req, res) {
     "0x000000000000000000000000000000000000dead",
   ]);
 
+  // The RPC rate-limits bursts, so the Transfer-log scan runs at most once per
+  // request and feeds BOTH the eligible-holder count and the activity feed.
+  let logStatePromise = null;
+  const getLogState = () => (logStatePromise ||= fetchTokenLogState(RPC_URL, token, minRaw, excluded));
+
   try {
     // Explorer calls are best-effort (Blockscout sits behind Cloudflare at times);
     // everything the pot/draw logic needs comes straight from RPC.
@@ -52,15 +57,15 @@ export default async function handler(req, res) {
       fetchEthPrice(),
       fetchLotteryState(RPC_URL, vault, fromBlock),
       fetchEligibleHolders(EXPLORER_API, token, minRaw, excluded)
-        .catch(() => fetchEligibleFromLogs(RPC_URL, token, minRaw, excluded))
+        .catch(() => getLogState().then((s) => ({ count: s.count })))
         .catch(() => ({ count: 0 })),
     ]);
     const tokenInfo = tokenInfoR || {};
     let transfers = transfersR || { items: [] };
     const eligible = eligibleR || { count: 0 };
     if (!transfers.items?.length) {
-      // Blockscout unreachable — rebuild the feed from raw Transfer logs.
-      transfers = { items: await fetchTransfersFromLogs(RPC_URL, token).catch(() => []) };
+      // Blockscout unreachable — rebuild the feed from the same log scan.
+      transfers = { items: await getLogState().then((s) => s.recentTransfers).catch(() => []) };
     }
 
     // Read the pot straight from the chain: Blockscout's indexed coin_balance lags.
@@ -227,19 +232,29 @@ async function fetchJson(url) {
 const TOKEN_LAUNCH_BLOCK = Number(process.env.TOKEN_LAUNCH_BLOCK || "53382236");
 const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 
-async function fetchEligibleFromLogs(rpcUrl, token, minRaw, excluded) {
-  const rpcReq = async (method, params) => {
+// One pass over all Transfer logs since launch. Returns the eligible-holder
+// count AND the most recent transfers (classified buy/sell) so the endpoint
+// never scans twice. Retries individual RPC calls on rate-limit errors.
+async function fetchTokenLogState(rpcUrl, token, minRaw, excluded) {
+  const rpcReq = async (method, params, attempt = 0) => {
     const r = await fetch(rpcUrl, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", id: 9, method, params }),
     });
     const j = await r.json();
-    if (j.error) throw new Error(j.error.message);
+    if (j.error) {
+      if (attempt < 3 && /rate limit/i.test(j.error.message || "")) {
+        await new Promise((res) => setTimeout(res, 400 * (attempt + 1)));
+        return rpcReq(method, params, attempt + 1);
+      }
+      throw new Error(j.error.message);
+    }
     return j.result;
   };
   const latest = Number(BigInt(await rpcReq("eth_blockNumber", [])));
   const balances = new Map();
+  let allLogs = [];
   const CHUNK = 10_000;
   for (let from = TOKEN_LAUNCH_BLOCK; from <= latest; from += CHUNK) {
     const to = Math.min(from + CHUNK - 1, latest);
@@ -256,12 +271,40 @@ async function fetchEligibleFromLogs(rpcUrl, token, minRaw, excluded) {
       balances.set(src, (balances.get(src) || 0n) - amt);
       balances.set(dst, (balances.get(dst) || 0n) + amt);
     }
+    allLogs = allLogs.concat(logs);
   }
   let count = 0;
   for (const [addr, bal] of balances) {
     if (bal >= minRaw && !excluded.has(addr)) count += 1;
   }
-  return { count };
+
+  // Latest 15 transfers, classified; timestamps fetched once per unique block.
+  const recent = allLogs.slice(-15).reverse();
+  const blockTimes = {};
+  for (const bn of [...new Set(recent.map((l) => l.blockNumber))]) {
+    try {
+      const b = await rpcReq("eth_getBlockByNumber", [bn, false]);
+      blockTimes[bn] = new Date(Number(BigInt(b.timestamp)) * 1000).toISOString();
+    } catch { blockTimes[bn] = ""; }
+  }
+  const recentTransfers = recent.map((l) => {
+    const from = ("0x" + l.topics[1].slice(26)).toLowerCase();
+    const to = ("0x" + l.topics[2].slice(26)).toLowerCase();
+    let type = "transfer";
+    if (SYSTEM_ADDRESSES.has(from)) type = "buy";
+    else if (SYSTEM_ADDRESSES.has(to)) type = "sell";
+    else if (from === "0x0000000000000000000000000000000000000000") type = "mint";
+    return {
+      from,
+      to,
+      tx_hash: l.transactionHash,
+      timestamp: blockTimes[l.blockNumber] || "",
+      type,
+      amount: BigInt(l.data === "0x" ? "0x0" : l.data).toString(),
+    };
+  });
+
+  return { count, recentTransfers };
 }
 
 // Several sources because each one fails somewhere: CoinGecko rate-limits,
@@ -331,49 +374,6 @@ const SYSTEM_ADDRESSES = new Set([
   "0xd3afeb2a57f70ef218aa82451c51b2fb0416ac9e", // fee escrow
   "0x42df2a798f82289e177311362e8f5ccc45c1219c", // buyback vault
 ]);
-
-async function fetchTransfersFromLogs(rpcUrl, token) {
-  const rpcReq = async (method, params) => {
-    const r = await fetch(rpcUrl, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 11, method, params }),
-    });
-    const j = await r.json();
-    if (j.error) throw new Error(j.error.message);
-    return j.result;
-  };
-  const latest = Number(BigInt(await rpcReq("eth_blockNumber", [])));
-  const logs = await rpcReq("eth_getLogs", [{
-    address: token,
-    topics: [TRANSFER_TOPIC],
-    fromBlock: "0x" + Math.max(TOKEN_LAUNCH_BLOCK, latest - 3000).toString(16),
-    toBlock: "latest",
-  }]);
-  const recent = logs.slice(-15).reverse();
-  // one timestamp lookup per distinct block
-  const blockTimes = {};
-  await Promise.all([...new Set(recent.map((l) => l.blockNumber))].map(async (bn) => {
-    const b = await rpcReq("eth_getBlockByNumber", [bn, false]);
-    blockTimes[bn] = new Date(Number(BigInt(b.timestamp)) * 1000).toISOString();
-  }));
-  return recent.map((l) => {
-    const from = ("0x" + l.topics[1].slice(26)).toLowerCase();
-    const to = ("0x" + l.topics[2].slice(26)).toLowerCase();
-    let type = "transfer";
-    if (SYSTEM_ADDRESSES.has(from)) type = "buy";
-    else if (SYSTEM_ADDRESSES.has(to)) type = "sell";
-    else if (from === "0x0000000000000000000000000000000000000000") type = "mint";
-    return {
-      from,
-      to,
-      tx_hash: l.transactionHash,
-      timestamp: blockTimes[l.blockNumber] || "",
-      type,
-      amount: BigInt(l.data === "0x" ? "0x0" : l.data).toString(),
-    };
-  });
-}
 
 function mapTransfer(t) {
   const from = t.from?.hash || t.from || "?";
