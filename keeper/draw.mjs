@@ -233,6 +233,18 @@ export async function runDraw() {
     return { ok: true, skipped: true, reason: "Draw not ready", nextDraw };
   }
 
+  // Post-graduation the pot refills only when the Pons operator sweeps hook
+  // fees into the escrow. Skip zero-pot draws — a "0 ETH winner" helps nobody.
+  const [vaultBalHex, escrowPendingHex] = await Promise.all([
+    rpc("eth_getBalance", [VAULT, "latest"]),
+    rpcCall(FEE_ESCROW, BALANCE_OF + VAULT.slice(2).padStart(64, "0")),
+  ]);
+  const potWei = BigInt(vaultBalHex || "0x0") + BigInt(escrowPendingHex || "0x0");
+  const curveTaxWei = CURVE ? BigInt(await rpcCall(CURVE, CREATOR_TAX_BALANCE).catch(() => "0x0") || "0x0") : 0n;
+  if (potWei + curveTaxWei === 0n) {
+    return { ok: true, skipped: true, reason: "Pot is empty — waiting for fee sweep", nextDraw };
+  }
+
   const account = privateKeyToAccount(PRIVATE_KEY);
   const client = createWalletClient({
     account,
