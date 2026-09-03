@@ -56,8 +56,12 @@ export default async function handler(req, res) {
         .catch(() => ({ count: 0 })),
     ]);
     const tokenInfo = tokenInfoR || {};
-    const transfers = transfersR || { items: [] };
+    let transfers = transfersR || { items: [] };
     const eligible = eligibleR || { count: 0 };
+    if (!transfers.items?.length) {
+      // Blockscout unreachable — rebuild the feed from raw Transfer logs.
+      transfers = { items: await fetchTransfersFromLogs(RPC_URL, token).catch(() => []) };
+    }
 
     // Read the pot straight from the chain: Blockscout's indexed coin_balance lags.
     // Include creator fees still sitting in the Pons escrow — they're claimed at
@@ -314,6 +318,61 @@ async function fetchEligibleHolders(api, token, minRaw, excluded = new Set()) {
   }
 
   return { count };
+}
+
+// Pons/Uniswap system contracts: a transfer leaving one of these is a buy,
+// one entering is a sell, anything else is a wallet-to-wallet move.
+const SYSTEM_ADDRESSES = new Set([
+  "0x8366a39cc670b4001a1121b8f6a443a643e40951", // Uniswap V4 pool manager
+  "0xe5e702641ea86f4ae6cc3cdaed2b886f976be044", // Pons meme hook
+  "0x9eb4a3179621ccbb86eb8599400e54259b93d553", // LUCK bonding curve (graduated)
+  "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e", // Pons factory
+  "0x267444d099b10fb5ed7c3cc7b7c767adca574952", // launch locker
+  "0xd3afeb2a57f70ef218aa82451c51b2fb0416ac9e", // fee escrow
+  "0x42df2a798f82289e177311362e8f5ccc45c1219c", // buyback vault
+]);
+
+async function fetchTransfersFromLogs(rpcUrl, token) {
+  const rpcReq = async (method, params) => {
+    const r = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 11, method, params }),
+    });
+    const j = await r.json();
+    if (j.error) throw new Error(j.error.message);
+    return j.result;
+  };
+  const latest = Number(BigInt(await rpcReq("eth_blockNumber", [])));
+  const logs = await rpcReq("eth_getLogs", [{
+    address: token,
+    topics: [TRANSFER_TOPIC],
+    fromBlock: "0x" + Math.max(TOKEN_LAUNCH_BLOCK, latest - 3000).toString(16),
+    toBlock: "latest",
+  }]);
+  const recent = logs.slice(-15).reverse();
+  // one timestamp lookup per distinct block
+  const blockTimes = {};
+  await Promise.all([...new Set(recent.map((l) => l.blockNumber))].map(async (bn) => {
+    const b = await rpcReq("eth_getBlockByNumber", [bn, false]);
+    blockTimes[bn] = new Date(Number(BigInt(b.timestamp)) * 1000).toISOString();
+  }));
+  return recent.map((l) => {
+    const from = ("0x" + l.topics[1].slice(26)).toLowerCase();
+    const to = ("0x" + l.topics[2].slice(26)).toLowerCase();
+    let type = "transfer";
+    if (SYSTEM_ADDRESSES.has(from)) type = "buy";
+    else if (SYSTEM_ADDRESSES.has(to)) type = "sell";
+    else if (from === "0x0000000000000000000000000000000000000000") type = "mint";
+    return {
+      from,
+      to,
+      tx_hash: l.transactionHash,
+      timestamp: blockTimes[l.blockNumber] || "",
+      type,
+      amount: BigInt(l.data === "0x" ? "0x0" : l.data).toString(),
+    };
+  });
 }
 
 function mapTransfer(t) {

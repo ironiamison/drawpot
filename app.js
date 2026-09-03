@@ -359,11 +359,18 @@ function renderTransfers(transfers) {
   transfers.forEach((t) => {
     if (!t.hash || state.seenTx.has(t.hash)) return;
     state.seenTx.add(t.hash);
-    const isBuy = t.to && t.to !== "0x0000000000000000000000000000000000000000";
+    if (t.type === "mint") return;
+    // Explicit classification from the API (buy = tokens leaving the pool,
+    // sell = tokens entering it); fall back to the old heuristic otherwise.
+    const type = t.type === "buy" || t.type === "sell" || t.type === "transfer"
+      ? t.type
+      : (t.to && t.to !== "0x0000000000000000000000000000000000000000" ? "buy" : "sell");
+    const isBuy = type === "buy";
+    const verb = type === "transfer" ? "moved" : isBuy ? "bought" : "sold";
     addFeed({
-      type: isBuy ? "buy" : "sell",
-      icon: isBuy ? "↑" : "↓",
-      body: `<strong>${shortAddr(isBuy ? t.to : t.from)}</strong> ${isBuy ? "bought" : "sold"} $LUCK`,
+      type,
+      icon: type === "transfer" ? "→" : isBuy ? "↑" : "↓",
+      body: `<strong>${shortAddr(isBuy ? t.to : t.from)}</strong> ${verb} $LUCK`,
       time: t.ts ? timeAgo(t.ts) : "now",
       hash: t.hash,
     });
