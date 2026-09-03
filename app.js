@@ -315,7 +315,7 @@ function announceWinner(data) {
   $("winner-modal-wallet").textContent = shortAddr(winner);
   $("winner-modal-prize").textContent = `${fmtEth(prize)} ETH`;
   $("winner-modal-link").href = `${cfg().explorer}/tx/${data.lastWinnerTx}`;
-  const shareText = `One $LUCK holder just won ${fmtEth(prize)} ETH on POTLUCK. Hold 20K+ $LUCK and you're automatically in every draw. ${cfg().siteUrl}`;
+  const shareText = `One $LUCK holder just won ${fmtEth(prize)} ETH on @PotLuckRH. Hold 20K+ $LUCK and you're automatically in every draw. ${cfg().siteUrl}`;
   $("winner-modal-share").href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
   $("winner-modal").classList.remove("hidden");
 }
