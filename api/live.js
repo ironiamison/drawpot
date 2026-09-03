@@ -31,23 +31,32 @@ export default async function handler(req, res) {
   const minRaw = minHold * 10n ** BigInt(decimals);
   const fromBlock = `0x${Number(VAULT_DEPLOYMENT_BLOCK || 0).toString(16)}`;
 
+  const excluded = new Set([
+    token,
+    vault,
+    CURVE_ADDRESS.toLowerCase(),
+    FEE_ESCROW_ADDRESS.toLowerCase(),
+    "0x0000000000000000000000000000000000000000",
+    "0x000000000000000000000000000000000000dead",
+  ]);
+
   try {
-    const [tokenInfo, vaultBalanceHex, escrowPendingHex, transfers, ethPrice, lottery, eligible] = await Promise.all([
-      fetchJson(`${EXPLORER_API}/tokens/${token}`),
+    // Explorer calls are best-effort (Blockscout sits behind Cloudflare at times);
+    // everything the pot/draw logic needs comes straight from RPC.
+    const [tokenInfoR, vaultBalanceHex, escrowPendingHex, transfersR, ethPrice, lottery, eligibleR] = await Promise.all([
+      fetchJson(`${EXPLORER_API}/tokens/${token}`).catch(() => ({})),
       rpcGetBalance(RPC_URL, vault),
       rpcEscrowPending(RPC_URL, FEE_ESCROW_ADDRESS.toLowerCase(), vault),
-      fetchJson(`${EXPLORER_API}/tokens/${token}/transfers`),
+      fetchJson(`${EXPLORER_API}/tokens/${token}/transfers`).catch(() => ({ items: [] })),
       fetchEthPrice(),
       fetchLotteryState(RPC_URL, vault, fromBlock),
-      fetchEligibleHolders(EXPLORER_API, token, minRaw, new Set([
-        token,
-        vault,
-        CURVE_ADDRESS.toLowerCase(),
-        FEE_ESCROW_ADDRESS.toLowerCase(),
-        "0x0000000000000000000000000000000000000000",
-        "0x000000000000000000000000000000000000dead",
-      ])),
+      fetchEligibleHolders(EXPLORER_API, token, minRaw, excluded)
+        .catch(() => fetchEligibleFromLogs(RPC_URL, token, minRaw, excluded))
+        .catch(() => ({ count: 0 })),
     ]);
+    const tokenInfo = tokenInfoR || {};
+    const transfers = transfersR || { items: [] };
+    const eligible = eligibleR || { count: 0 };
 
     // Read the pot straight from the chain: Blockscout's indexed coin_balance lags.
     // Include creator fees still sitting in the Pons escrow — they're claimed at draw time.
@@ -193,6 +202,47 @@ async function fetchJson(url) {
   const r = await fetch(url, { headers: { accept: "application/json" } });
   if (!r.ok) throw new Error(`API ${r.status}: ${url}`);
   return r.json();
+}
+
+// Indexer-free eligible-holder count: replay Transfer logs since launch.
+const TOKEN_LAUNCH_BLOCK = Number(process.env.TOKEN_LAUNCH_BLOCK || "53382236");
+const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+
+async function fetchEligibleFromLogs(rpcUrl, token, minRaw, excluded) {
+  const rpcReq = async (method, params) => {
+    const r = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 9, method, params }),
+    });
+    const j = await r.json();
+    if (j.error) throw new Error(j.error.message);
+    return j.result;
+  };
+  const latest = Number(BigInt(await rpcReq("eth_blockNumber", [])));
+  const balances = new Map();
+  const CHUNK = 10_000;
+  for (let from = TOKEN_LAUNCH_BLOCK; from <= latest; from += CHUNK) {
+    const to = Math.min(from + CHUNK - 1, latest);
+    const logs = await rpcReq("eth_getLogs", [{
+      address: token,
+      topics: [TRANSFER_TOPIC],
+      fromBlock: "0x" + from.toString(16),
+      toBlock: "0x" + to.toString(16),
+    }]);
+    for (const l of logs) {
+      const src = ("0x" + l.topics[1].slice(26)).toLowerCase();
+      const dst = ("0x" + l.topics[2].slice(26)).toLowerCase();
+      const amt = BigInt(l.data === "0x" ? "0x0" : l.data);
+      balances.set(src, (balances.get(src) || 0n) - amt);
+      balances.set(dst, (balances.get(dst) || 0n) + amt);
+    }
+  }
+  let count = 0;
+  for (const [addr, bal] of balances) {
+    if (bal >= minRaw && !excluded.has(addr)) count += 1;
+  }
+  return { count };
 }
 
 // Several sources because each one fails somewhere: CoinGecko rate-limits,

@@ -99,12 +99,12 @@ async function filterWinnable(addresses) {
   return named.filter((_, i) => !contractFlags[i]);
 }
 
-async function fetchEligibleHolders(token) {
+async function fetchHoldersFromExplorer(token) {
   const holders = [];
   let cursor = "";
   for (let page = 0; page < 20; page += 1) {
     const res = await fetch(`${EXPLORER_API}/tokens/${token}/holders${cursor}`);
-    if (!res.ok) break;
+    if (!res.ok) throw new Error(`explorer ${res.status}`);
     const data = await res.json();
     const items = data.items || [];
     if (!items.length) break;
@@ -120,6 +120,59 @@ async function fetchEligibleHolders(token) {
     }
     if (reachedBelowMinimum || !data.next_page_params) break;
     cursor = `?${new URLSearchParams(data.next_page_params).toString()}`;
+  }
+  return holders;
+}
+
+// Indexer-free fallback: replay Transfer logs since launch to find candidate
+// holders, then confirm each balance on-chain via balanceOf.
+const TOKEN_LAUNCH_BLOCK = Number(process.env.TOKEN_LAUNCH_BLOCK || "53382236");
+const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+
+async function fetchHoldersFromLogs(token) {
+  const latest = Number(BigInt(await rpc("eth_blockNumber", [])));
+  const balances = new Map();
+  const CHUNK = 10_000;
+  for (let from = TOKEN_LAUNCH_BLOCK; from <= latest; from += CHUNK) {
+    const to = Math.min(from + CHUNK - 1, latest);
+    const logs = await rpc("eth_getLogs", [{
+      address: token,
+      topics: [TRANSFER_TOPIC],
+      fromBlock: "0x" + from.toString(16),
+      toBlock: "0x" + to.toString(16),
+    }]);
+    for (const l of logs) {
+      const src = ("0x" + l.topics[1].slice(26)).toLowerCase();
+      const dst = ("0x" + l.topics[2].slice(26)).toLowerCase();
+      const amt = BigInt(l.data === "0x" ? "0x0" : l.data);
+      balances.set(src, (balances.get(src) || 0n) - amt);
+      balances.set(dst, (balances.get(dst) || 0n) + amt);
+    }
+  }
+  const candidates = [...balances.entries()]
+    .filter(([addr, bal]) => bal >= MIN_RAW && addr !== "0x0000000000000000000000000000000000000000")
+    .map(([addr]) => addr)
+    .slice(0, 500);
+  // Confirm on-chain — the log replay could be stale by a block or two.
+  const confirmed = [];
+  for (let i = 0; i < candidates.length; i += 25) {
+    const batch = candidates.slice(i, i + 25);
+    const results = await Promise.all(batch.map(async (addr) => {
+      const bal = await rpcCall(token, BALANCE_OF + addr.slice(2).padStart(64, "0"));
+      return { addr, ok: BigInt(bal || "0x0") >= MIN_RAW };
+    }));
+    for (const r of results) if (r.ok) confirmed.push(getAddress(r.addr));
+  }
+  return confirmed;
+}
+
+async function fetchEligibleHolders(token) {
+  let holders;
+  try {
+    holders = await fetchHoldersFromExplorer(token);
+  } catch {
+    // Blockscout down or behind Cloudflare — derive holders from chain logs.
+    holders = await fetchHoldersFromLogs(token);
   }
   const unique = [...new Set(holders)].sort((a, b) => a.localeCompare(b));
   return filterWinnable(unique);
