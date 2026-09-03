@@ -207,7 +207,10 @@ function renderStats(data) {
     state.potLoaded = true;
     renderPot();
   }
-  state.participants = data.eligibleHolders ?? data.entrants ?? data.holders ?? 0;
+  // Sticky stats: a degraded refresh (rate-limited RPC, flaky indexer) must
+  // never paint zeros over real data — keep the last known good values.
+  const participants = data.eligibleHolders ?? data.entrants ?? data.holders ?? 0;
+  if (participants > 0 || !state.participants) state.participants = participants;
   // Keep the last known draw time if a refresh comes back empty — prevents the
   // countdown from jumping to the wall-clock fallback and back.
   state.nextDrawTime = data.nextDrawTime || state.nextDrawTime;
@@ -215,11 +218,14 @@ function renderStats(data) {
   // no cron is running.
   if (state.nextDrawTime && Date.now() / 1000 > state.nextDrawTime + 5) nudgeKeeper();
 
-  $("fees-collected").textContent = state.live ? "Live" : "—";
   const totalPaidEth = Number(BigInt(data.totalPaidOut || "0")) / 1e18;
-  $("total-paid").textContent = `${fmtEth(totalPaidEth)} ETH`;
+  state.totalPaidEth = Math.max(state.totalPaidEth || 0, totalPaidEth);
+  state.drawCount = Math.max(state.drawCount || 0, data.drawCount || 0);
+
+  $("fees-collected").textContent = state.live ? "Live" : "—";
+  $("total-paid").textContent = `${fmtEth(state.totalPaidEth)} ETH`;
   $("participants").textContent = state.participants.toLocaleString();
-  $("draws-count").textContent = (data.drawCount || 0).toLocaleString();
+  $("draws-count").textContent = state.drawCount.toLocaleString();
 
   if (state.live) {
     $("live-pill").innerHTML = `<span class="dot"></span> Live · ${data.symbol || "LUCK"}`;
@@ -314,9 +320,12 @@ function renderWinner(data) {
   const history = data.winnerHistory || [];
 
   if (!history.length) {
+    // Don't wipe an already-rendered winner table on a degraded refresh.
+    if (state.winnersRendered) return;
     body.innerHTML = `<tr class="empty"><td colspan="6">The first winner will appear here automatically.</td></tr>`;
     return;
   }
+  state.winnersRendered = true;
 
   body.innerHTML = history.map(({ drawId, winner, prize, devPrize, timestamp, transactionHash, eligibleCount }) => {
     const prizeEth = Number(BigInt(prize || "0")) / 1e18;
