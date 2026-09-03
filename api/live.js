@@ -2,7 +2,7 @@ const DRAW_EXECUTED_TOPIC = "0xd151cf347adc3d1e7c281984c1abc221440f9b0356b84f3a8
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Cache-Control", "s-maxage=3, stale-while-revalidate=10");
+  res.setHeader("Cache-Control", "s-maxage=10, stale-while-revalidate=60");
 
   const {
     TOKEN_ADDRESS = "",
@@ -40,10 +40,7 @@ export default async function handler(req, res) {
     "0x000000000000000000000000000000000000dead",
   ]);
 
-  // The RPC rate-limits bursts, so the Transfer-log scan runs at most once per
-  // request and feeds BOTH the eligible-holder count and the activity feed.
-  let logStatePromise = null;
-  const getLogState = () => (logStatePromise ||= fetchTokenLogState(RPC_URL, token, minRaw, excluded));
+  const getLogState = () => getLogStateCached(RPC_URL, token, minRaw, excluded);
 
   try {
     // Explorer calls are best-effort (Blockscout sits behind Cloudflare at times);
@@ -231,6 +228,29 @@ async function fetchJson(url) {
 // Indexer-free eligible-holder count: replay Transfer logs since launch.
 const TOKEN_LAUNCH_BLOCK = Number(process.env.TOKEN_LAUNCH_BLOCK || "53382236");
 const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+
+// The RPC rate-limits Vercel's shared IPs hard, so the log scan is memoized
+// per lambda instance (30s TTL) and the last good result is served stale when
+// a fresh scan fails — never a zeroed-out feed because of a rate limit.
+let logStateCache = { at: 0, data: null, inflight: null };
+
+async function getLogStateCached(rpcUrl, token, minRaw, excluded) {
+  const now = Date.now();
+  if (logStateCache.data && now - logStateCache.at < 30_000) return logStateCache.data;
+  if (!logStateCache.inflight) {
+    logStateCache.inflight = fetchTokenLogState(rpcUrl, token, minRaw, excluded)
+      .then((data) => {
+        logStateCache = { at: Date.now(), data, inflight: null };
+        return data;
+      })
+      .catch((err) => {
+        logStateCache.inflight = null;
+        if (logStateCache.data) return logStateCache.data; // serve stale
+        throw err;
+      });
+  }
+  return logStateCache.inflight;
+}
 
 // One pass over all Transfer logs since launch. Returns the eligible-holder
 // count AND the most recent transfers (classified buy/sell) so the endpoint
