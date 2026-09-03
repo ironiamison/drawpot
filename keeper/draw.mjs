@@ -31,6 +31,19 @@ const ALLOWLIST = (process.env.ALLOWLIST || "")
   .split(",")
   .map((a) => a.trim().toLowerCase())
   .filter((a) => /^0x[a-f0-9]{40}$/.test(a));
+const FEE_ESCROW = (process.env.FEE_ESCROW_ADDRESS || "0xd3AFEB2a57f70eF218Aa82451c51B2fb0416Ac9e").toLowerCase();
+// System addresses that hold tokens but must never win: the bonding curve,
+// the vault, the token contract, the fee escrow, and burn addresses.
+const NEVER_WIN = new Set(
+  [
+    VAULT,
+    TOKEN,
+    CURVE,
+    FEE_ESCROW,
+    "0x0000000000000000000000000000000000000000",
+    "0x000000000000000000000000000000000000dead",
+  ].filter(Boolean)
+);
 
 async function rpc(method, params) {
   const res = await fetch(RPC_URL, {
@@ -61,7 +74,7 @@ async function fetchAllowlistedHolders(token) {
   // Verify each allowlisted wallet's balance directly on-chain via balanceOf —
   // no indexer involved, so spoofed transfer data cannot affect eligibility.
   const checks = await Promise.all(
-    ALLOWLIST.map(async (addr) => {
+    ALLOWLIST.filter((addr) => !NEVER_WIN.has(addr)).map(async (addr) => {
       const data = BALANCE_OF + addr.slice(2).padStart(64, "0");
       const result = await rpcCall(token, data);
       return { addr, balance: BigInt(result || "0x0") };
@@ -71,6 +84,19 @@ async function fetchAllowlistedHolders(token) {
     .filter((c) => c.balance >= MIN_RAW)
     .map((c) => getAddress(c.addr))
     .sort((a, b) => a.localeCompare(b));
+}
+
+async function isContract(addr) {
+  const code = await rpc("eth_getCode", [addr, "latest"]);
+  return Boolean(code) && code !== "0x";
+}
+
+/// Drop system addresses and smart contracts (bonding curve, LP pools, routers)
+/// so only real wallets can win. If a code check fails, exclude to be safe.
+async function filterWinnable(addresses) {
+  const named = addresses.filter((a) => !NEVER_WIN.has(a.toLowerCase()));
+  const contractFlags = await Promise.all(named.map((a) => isContract(a).catch(() => true)));
+  return named.filter((_, i) => !contractFlags[i]);
 }
 
 async function fetchEligibleHolders(token) {
@@ -95,7 +121,8 @@ async function fetchEligibleHolders(token) {
     if (reachedBelowMinimum || !data.next_page_params) break;
     cursor = `?${new URLSearchParams(data.next_page_params).toString()}`;
   }
-  return [...new Set(holders)].sort((a, b) => a.localeCompare(b));
+  const unique = [...new Set(holders)].sort((a, b) => a.localeCompare(b));
+  return filterWinnable(unique);
 }
 
 function computeSnapshotHash(addresses) {

@@ -68,6 +68,16 @@ vercel --prod
 - Manual keeper run if needed:
   `TOKEN_ADDRESS=... VAULT_ADDRESS=... PRIVATE_KEY=... CURVE_ADDRESS=... node keeper/draw.mjs`
 
+## Anti-scam controls
+
+- **Contracts can never win.** The keeper drops the bonding curve, vault, escrow,
+  burn addresses, and any address with deployed code from the eligible set before
+  picking a winner (balcheck is on-chain via `eth_getCode`/`balanceOf`).
+- **Optional wallet allowlist.** Set `ALLOWLIST=0x...,0x...` in Vercel env to
+  restrict winners to known wallets. Balances are still verified on-chain, and
+  the vault contract independently re-checks the winner holds ≥ 20K at payout.
+  Remove the env var to reopen draws to all holders.
+
 ## Notes
 
 - Pot flow: trade → 5% creator tax accrues on curve/hook → swept to Pons

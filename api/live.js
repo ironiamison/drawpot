@@ -13,6 +13,7 @@ export default async function handler(req, res) {
     DECIMALS = "18",
     VAULT_DEPLOYMENT_BLOCK = "0",
     FEE_ESCROW_ADDRESS = "0xd3AFEB2a57f70eF218Aa82451c51B2fb0416Ac9e",
+    CURVE_ADDRESS = "",
   } = process.env;
 
   const token = (req.query.token || TOKEN_ADDRESS || "").toLowerCase();
@@ -38,7 +39,14 @@ export default async function handler(req, res) {
       fetchJson(`${EXPLORER_API}/tokens/${token}/transfers`),
       fetchEthPrice(),
       fetchLotteryState(RPC_URL, vault, fromBlock),
-      fetchEligibleHolders(EXPLORER_API, token, minRaw),
+      fetchEligibleHolders(EXPLORER_API, token, minRaw, new Set([
+        token,
+        vault,
+        CURVE_ADDRESS.toLowerCase(),
+        FEE_ESCROW_ADDRESS.toLowerCase(),
+        "0x0000000000000000000000000000000000000000",
+        "0x000000000000000000000000000000000000dead",
+      ])),
     ]);
 
     // Read the pot straight from the chain: Blockscout's indexed coin_balance lags.
@@ -214,7 +222,7 @@ async function fetchEthPrice() {
   return 0;
 }
 
-async function fetchEligibleHolders(api, token, minRaw) {
+async function fetchEligibleHolders(api, token, minRaw, excluded = new Set()) {
   let count = 0;
   let cursor = "";
   const maxPages = 10;
@@ -226,9 +234,10 @@ async function fetchEligibleHolders(api, token, minRaw) {
 
     let reachedBelowMinimum = false;
     for (const h of items) {
+      const addr = (h.address?.hash || h.address || "").toLowerCase();
       const val = BigInt(h.value || h.balance || "0");
       if (val >= minRaw) {
-        count += 1;
+        if (!excluded.has(addr)) count += 1;
       } else {
         reachedBelowMinimum = true;
       }
