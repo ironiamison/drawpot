@@ -2,7 +2,7 @@
 // right after the $LUCK launch on Pons V2 (vault 0xa981… is the
 // creatorFeeRecipient in the launch params).
 window.POTLUCK_CONFIG = {
-  tokenAddress: "", // set at Pons launch
+  tokenAddress: "0x89b5749a2a675491163a6277779d4a7dc4b56c88",
   vaultAddress: "0xa981d27b27c6f60931e6c99a1bcf22ed2a2e8a9e",
   lotteryAddress: "0xa981d27b27c6f60931e6c99a1bcf22ed2a2e8a9e",
   vaultDeploymentBlock: 53367042,
