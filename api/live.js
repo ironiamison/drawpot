@@ -278,8 +278,16 @@ async function fetchTokenLogState(rpcUrl, token, minRaw, excluded) {
     if (bal >= minRaw && !excluded.has(addr)) count += 1;
   }
 
-  // Latest 15 transfers, classified; timestamps fetched once per unique block.
-  const recent = allLogs.slice(-15).reverse();
+  // Latest transfers, classified; internal hops between system contracts
+  // (pool → router → hook legs) are dropped so only user-facing action shows.
+  const recent = allLogs
+    .filter((l) => {
+      const from = ("0x" + l.topics[1].slice(26)).toLowerCase();
+      const to = ("0x" + l.topics[2].slice(26)).toLowerCase();
+      return !(SYSTEM_ADDRESSES.has(from) && SYSTEM_ADDRESSES.has(to));
+    })
+    .slice(-15)
+    .reverse();
   const blockTimes = {};
   for (const bn of [...new Set(recent.map((l) => l.blockNumber))]) {
     try {
@@ -373,6 +381,12 @@ const SYSTEM_ADDRESSES = new Set([
   "0x267444d099b10fb5ed7c3cc7b7c767adca574952", // launch locker
   "0xd3afeb2a57f70ef218aa82451c51b2fb0416ac9e", // fee escrow
   "0x42df2a798f82289e177311362e8f5ccc45c1219c", // buyback vault
+  // swap routers observed in front of the V4 pool — transfers touching these
+  // are trade legs, not wallet moves
+  "0xb92fe925dc43a0ecde6c8b1a2709c170ec4fff4f",
+  "0x39b38686a19836ac10162c490e4558e120cbbe5f",
+  "0x8f10b468b06c6fd214b65f87778827f7d113f996",
+  "0x8876789976decbfcbbbe364623c63652db8c0904",
 ]);
 
 function mapTransfer(t) {
