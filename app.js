@@ -270,6 +270,19 @@ async function refreshVaultBalance() {
           vaultWei += BigInt(pendingHex || "0x0");
         } catch { /* escrow read is best-effort */ }
       }
+      // Post-graduation: ETH-side creator tax accrues on the MemeHook until
+      // the Pons operator sweeps it — count it so the pot ticks up per trade.
+      const hook = cfg().memeHookAddress;
+      const poolId = cfg().poolId;
+      if (hook && poolId) {
+        try {
+          const hookHex = await rpcRequest("eth_call", [{
+            to: hook,
+            data: "0xc8eaa792" + poolId.slice(2) + "0".repeat(64),
+          }, "latest"]);
+          vaultWei += BigInt(hookHex || "0x0");
+        } catch { /* hook read is best-effort */ }
+      }
       vaultEth = Number(vaultWei) / 1e18;
       if (!ethPrice && state.vaultEth > 0 && state.vaultUsd > 0) {
         ethPrice = state.vaultUsd / state.vaultEth;

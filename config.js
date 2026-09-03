@@ -22,6 +22,11 @@ window.POTLUCK_CONFIG = {
   // Pons V2 (ponsfamily.com) — creator fees accrue in this escrow until claimed.
   ponsUrl: "https://ponsfamily.com",
   feeEscrowAddress: "0xd3AFEB2a57f70eF218Aa82451c51B2fb0416Ac9e",
+  // Post-graduation: fees accrue on the shared MemeHook per pool until the
+  // Pons operator sweeps them into the escrow. Read pendingCreatorTax /
+  // pendingFees with this poolId to show the true unswept pot.
+  memeHookAddress: "0xE5e702641Ea86F4ae6cC3cDaeD2B886f976Be044",
+  poolId: "0x5311c807a5a12ca3a854521f20170c8116199c0d3bacaf467a1efb1b3d30ce50",
 
   pollMs: 8000,
   devFeeBps: 2000,

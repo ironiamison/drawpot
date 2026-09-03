@@ -43,10 +43,11 @@ export default async function handler(req, res) {
   try {
     // Explorer calls are best-effort (Blockscout sits behind Cloudflare at times);
     // everything the pot/draw logic needs comes straight from RPC.
-    const [tokenInfoR, vaultBalanceHex, escrowPendingHex, transfersR, ethPrice, lottery, eligibleR] = await Promise.all([
+    const [tokenInfoR, vaultBalanceHex, escrowPendingHex, hookPendingHex, transfersR, ethPrice, lottery, eligibleR] = await Promise.all([
       fetchJson(`${EXPLORER_API}/tokens/${token}`).catch(() => ({})),
       rpcGetBalance(RPC_URL, vault),
       rpcEscrowPending(RPC_URL, FEE_ESCROW_ADDRESS.toLowerCase(), vault),
+      rpcHookPendingTax(RPC_URL).catch(() => "0x0"),
       fetchJson(`${EXPLORER_API}/tokens/${token}/transfers`).catch(() => ({ items: [] })),
       fetchEthPrice(),
       fetchLotteryState(RPC_URL, vault, fromBlock),
@@ -59,8 +60,10 @@ export default async function handler(req, res) {
     const eligible = eligibleR || { count: 0 };
 
     // Read the pot straight from the chain: Blockscout's indexed coin_balance lags.
-    // Include creator fees still sitting in the Pons escrow — they're claimed at draw time.
-    const vaultWei = BigInt(vaultBalanceHex || "0x0") + BigInt(escrowPendingHex || "0x0");
+    // Include creator fees still sitting in the Pons escrow — they're claimed at
+    // draw time — plus the ETH-side creator tax accruing on the MemeHook
+    // post-graduation (moves to escrow when the Pons operator sweeps).
+    const vaultWei = BigInt(vaultBalanceHex || "0x0") + BigInt(escrowPendingHex || "0x0") + BigInt(hookPendingHex || "0x0");
     const vaultEth = Number(vaultWei) / 1e18;
     const vaultUsd = vaultEth * Number(ethPrice || 0);
 
@@ -154,6 +157,18 @@ async function fetchWinnerHistory(rpcUrl, vault, fromBlock) {
       transactionHash: log.transactionHash,
     };
   });
+}
+
+// Post-graduation, creator tax accrues on the shared Pons MemeHook per poolId
+// until swept. ETH-side balance is readable via pendingCreatorTax(poolId, 0x0).
+// (Token-denominated fees also accrue but need an operator conversion, so they
+// show up in the pot only after a sweep.)
+const MEME_HOOK = process.env.MEME_HOOK_ADDRESS || "0xE5e702641Ea86F4ae6cC3cDaeD2B886f976Be044";
+const POOL_ID = process.env.POOL_ID || "0x5311c807a5a12ca3a854521f20170c8116199c0d3bacaf467a1efb1b3d30ce50";
+
+async function rpcHookPendingTax(rpcUrl) {
+  const data = "0xc8eaa792" + POOL_ID.slice(2) + "0".repeat(64); // pendingCreatorTax(poolId, native)
+  return rpcCall(rpcUrl, MEME_HOOK, data);
 }
 
 async function rpcEscrowPending(rpcUrl, escrow, vault) {

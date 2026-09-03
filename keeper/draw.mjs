@@ -190,6 +190,35 @@ function pickWinner(addresses, snapshotHashHex, drawCount, blockNumber) {
   return addresses[index];
 }
 
+// Post-graduation: fees accrue on the shared Pons MemeHook per pool. The
+// creator may sweep when no internal swap is needed (token-side fees zero);
+// otherwise the Pons operator sweeps on their own schedule and this reverts
+// harmlessly with InternalSwapRequiresOperator.
+const MEME_HOOK = (process.env.MEME_HOOK_ADDRESS || "0xE5e702641Ea86F4ae6cC3cDaeD2B886f976Be044").toLowerCase();
+const POOL_ID = process.env.POOL_ID || "0x5311c807a5a12ca3a854521f20170c8116199c0d3bacaf467a1efb1b3d30ce50";
+const SWEEP_POOL_FEES = toFunctionSelector("function sweepPoolFees(bytes32,uint256,uint256)");
+const PENDING_CREATOR_TAX = toFunctionSelector("function pendingCreatorTax(bytes32,address)");
+
+async function sweepHookFees(client, account) {
+  if (!MEME_HOOK || !POOL_ID) return null;
+  try {
+    const pendingHex = await rpcCall(MEME_HOOK, PENDING_CREATOR_TAX + POOL_ID.slice(2) + "0".repeat(64));
+    if (BigInt(pendingHex || "0x0") === 0n) return null;
+    const data = SWEEP_POOL_FEES + POOL_ID.slice(2) + "0".repeat(128);
+    // Preflight: skip quietly when the sweep needs the operator's internal swap.
+    await rpc("eth_estimateGas", [{ from: account.address, to: MEME_HOOK, data }]);
+    const txHash = await client.sendTransaction({ to: MEME_HOOK, data, account, gas: 1_200_000n });
+    for (let i = 0; i < 10; i += 1) {
+      const receipt = await rpc("eth_getTransactionReceipt", [txHash]);
+      if (receipt) return { txHash, status: receipt.status };
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+    return { txHash, status: "pending" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
 async function sweepCurveFees(client, account) {
   if (!CURVE) return null;
   try {
@@ -233,18 +262,6 @@ export async function runDraw() {
     return { ok: true, skipped: true, reason: "Draw not ready", nextDraw };
   }
 
-  // Post-graduation the pot refills only when the Pons operator sweeps hook
-  // fees into the escrow. Skip zero-pot draws — a "0 ETH winner" helps nobody.
-  const [vaultBalHex, escrowPendingHex] = await Promise.all([
-    rpc("eth_getBalance", [VAULT, "latest"]),
-    rpcCall(FEE_ESCROW, BALANCE_OF + VAULT.slice(2).padStart(64, "0")),
-  ]);
-  const potWei = BigInt(vaultBalHex || "0x0") + BigInt(escrowPendingHex || "0x0");
-  const curveTaxWei = CURVE ? BigInt(await rpcCall(CURVE, CREATOR_TAX_BALANCE).catch(() => "0x0") || "0x0") : 0n;
-  if (potWei + curveTaxWei === 0n) {
-    return { ok: true, skipped: true, reason: "Pot is empty — waiting for fee sweep", nextDraw };
-  }
-
   const account = privateKeyToAccount(PRIVATE_KEY);
   const client = createWalletClient({
     account,
@@ -252,7 +269,21 @@ export async function runDraw() {
     transport: http(RPC_URL),
   });
 
+  // Sweep first so freshly accrued fees make it into this draw's pot.
   const sweep = await sweepCurveFees(client, account);
+  const hookSweep = await sweepHookFees(client, account);
+
+  // Skip zero-pot draws — a "0 ETH winner" helps nobody. Post-graduation the
+  // payable pot is vault balance + escrow credit; hook fees needing an
+  // operator conversion join the pot at the next Pons sweep instead.
+  const [vaultBalHex, escrowPendingHex] = await Promise.all([
+    rpc("eth_getBalance", [VAULT, "latest"]),
+    rpcCall(FEE_ESCROW, BALANCE_OF + VAULT.slice(2).padStart(64, "0")),
+  ]);
+  const potWei = BigInt(vaultBalHex || "0x0") + BigInt(escrowPendingHex || "0x0");
+  if (potWei === 0n) {
+    return { ok: true, skipped: true, reason: "Pot is empty — waiting for fee sweep", nextDraw, sweep, hookSweep };
+  }
 
   const eligible = ALLOWLIST.length
     ? await fetchAllowlistedHolders(TOKEN)
@@ -283,6 +314,7 @@ export async function runDraw() {
     snapshotBlock,
     eligible,
     sweep,
+    hookSweep,
   };
 }
 

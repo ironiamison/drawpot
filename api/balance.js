@@ -24,13 +24,14 @@ export default async function handler(req, res) {
   const escrow = (process.env.FEE_ESCROW_ADDRESS || "0xd3AFEB2a57f70eF218Aa82451c51B2fb0416Ac9e").toLowerCase();
 
   try {
-    const [balanceHex, pendingHex, ethPrice] = await Promise.all([
+    const [balanceHex, pendingHex, hookPendingHex, ethPrice] = await Promise.all([
       rpcGetBalance(rpc, vault),
       rpcEscrowPending(rpc, escrow, vault),
+      rpcHookPendingTax(rpc),
       fetchEthPrice(),
     ]);
 
-    const vaultWei = BigInt(balanceHex || "0x0") + BigInt(pendingHex || "0x0");
+    const vaultWei = BigInt(balanceHex || "0x0") + BigInt(pendingHex || "0x0") + BigInt(hookPendingHex || "0x0");
     const vaultEth = Number(vaultWei) / 1e18;
     const vaultUsd = vaultEth * ethPrice;
 
@@ -54,6 +55,31 @@ async function fetchEthPrice() {
     } catch { /* try next */ }
   }
   return 0;
+}
+
+// Post-graduation, ETH-side creator tax accrues on the Pons MemeHook until
+// the operator sweeps it into the escrow. Count it as part of the pot.
+const MEME_HOOK = process.env.MEME_HOOK_ADDRESS || "0xE5e702641Ea86F4ae6cC3cDaeD2B886f976Be044";
+const POOL_ID = process.env.POOL_ID || "0x5311c807a5a12ca3a854521f20170c8116199c0d3bacaf467a1efb1b3d30ce50";
+
+async function rpcHookPendingTax(rpcUrl) {
+  try {
+    const r = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 3,
+        method: "eth_call",
+        params: [{ to: MEME_HOOK, data: "0xc8eaa792" + POOL_ID.slice(2) + "0".repeat(64) }, "latest"],
+      }),
+    });
+    const j = await r.json();
+    if (j.error) return "0x0";
+    return j.result || "0x0";
+  } catch {
+    return "0x0";
+  }
 }
 
 async function rpcEscrowPending(rpcUrl, escrow, vault) {
