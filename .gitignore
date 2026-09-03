@@ -1,0 +1,10 @@
+node_modules
+.DS_Store
+.vercel
+.env
+contracts/.env
+contracts/broadcast
+contracts/cache
+contracts/out
+contracts/lib
+contracts/_flap-example

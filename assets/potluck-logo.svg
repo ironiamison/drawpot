@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 150" fill="none" role="img" aria-labelledby="title">
+  <title id="title">POTLUCK</title>
+  <defs>
+    <linearGradient id="gold" x1="20" y1="20" x2="240" y2="130" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD879"/>
+      <stop offset="1" stop-color="#F5A524"/>
+    </linearGradient>
+    <radialGradient id="coin" cx="0.35" cy="0.3" r="1">
+      <stop stop-color="#FFE29A"/>
+      <stop offset="0.55" stop-color="#FFC53D"/>
+      <stop offset="1" stop-color="#E89B0C"/>
+    </radialGradient>
+    <path id="leaf" d="M0 -3 C -3 -9 -13 -10 -13 -17 C -13 -22 -9 -25 -5 -25 C -3 -25 -1 -23 0 -21 C 1 -23 3 -25 5 -25 C 9 -25 13 -22 13 -17 C 13 -10 3 -9 0 -3 Z"/>
+  </defs>
+  <text x="20" y="104" fill="url(#gold)" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="88" font-weight="900" letter-spacing="-2">P</text>
+  <circle cx="133" cy="73" r="42" fill="url(#coin)"/>
+  <circle cx="133" cy="73" r="34" fill="none" stroke="#B97E08" stroke-width="2.5" stroke-dasharray="3 5" opacity="0.7"/>
+  <g fill="#1E9E56">
+    <use href="#leaf" transform="translate(133,73) rotate(0)"/>
+    <use href="#leaf" transform="translate(133,73) rotate(90)"/>
+    <use href="#leaf" transform="translate(133,73) rotate(180)"/>
+    <use href="#leaf" transform="translate(133,73) rotate(270)"/>
+  </g>
+  <path d="M135 76 C 138 84 143 89 148 92" stroke="#1E9E56" stroke-width="4" stroke-linecap="round"/>
+  <text x="182" y="104" fill="url(#gold)" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="88" font-weight="900" letter-spacing="-2">T</text>
+  <text x="252" y="104" fill="#fff" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="88" font-weight="900" letter-spacing="-2">LUCK</text>
+  <path d="M580 38 l5 14 14 5 -14 5 -5 14 -5 -14 -14 -5 14 -5 5 -14Z" fill="#FFC53D"/>
+</svg>

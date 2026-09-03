@@ -1,9 +1,19 @@
 {
   "version": 2,
+  "installCommand": "npm install",
   "buildCommand": null,
   "outputDirectory": ".",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" }
+  ],
+  "redirects": [
+    { "source": "/keeper/:path*", "destination": "/", "permanent": false },
+    { "source": "/contracts/:path*", "destination": "/", "permanent": false },
+    { "source": "/package.json", "destination": "/", "permanent": false },
+    { "source": "/vercel.json", "destination": "/", "permanent": false }
+  ],
+  "crons": [
+    { "path": "/api/keeper", "schedule": "* * * * *" }
   ],
   "headers": [
     {

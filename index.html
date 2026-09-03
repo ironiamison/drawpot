@@ -3,174 +3,250 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DAWPOT — Robinhood Crypto Tax Token · LOTTO</title>
-  <meta name="description" content="Every trade fills the vault. Every 20 minutes one wallet wins." />
-  <meta property="og:title" content="DAWPOT LOTTO" />
-  <meta property="og:image" content="assets/logo.png" />
-  <meta name="theme-color" content="#00c805" />
-  <link rel="icon" href="assets/logo.png" type="image/png" />
+  <title>POTLUCK — On-Chain Lotto</title>
+  <meta name="description" content="POTLUCK is an on-chain lottery on Robinhood Chain. Hold $LUCK to enter — no registration. One winner every 20 minutes." />
+  <link rel="canonical" href="https://holdpot.xyz/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="POTLUCK" />
+  <meta property="og:title" content="POTLUCK — Hold $LUCK. Win the pot." />
+  <meta property="og:description" content="On-chain lottery on Robinhood Chain. Hold 20K+ $LUCK and you're automatically in — one winner every 20 minutes, paid in ETH." />
+  <meta property="og:url" content="https://holdpot.xyz" />
+  <meta property="og:image" content="https://holdpot.xyz/assets/potluck-og.png" />
+  <meta property="og:image:width" content="1536" />
+  <meta property="og:image:height" content="1024" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="POTLUCK — Hold $LUCK. Win the pot." />
+  <meta name="twitter:description" content="On-chain lottery on Robinhood Chain. Hold 20K+ $LUCK and you're automatically in — one winner every 20 minutes, paid in ETH." />
+  <meta name="twitter:image" content="https://holdpot.xyz/assets/potluck-og.png" />
+  <meta name="theme-color" content="#ffc53d" />
+  <link rel="icon" href="assets/potluck-favicon.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=202609030455" />
 </head>
 <body>
-  <canvas id="particles" aria-hidden="true"></canvas>
-
-  <div class="ticker" aria-hidden="true">
-    <div class="ticker-track" id="ticker-track"></div>
-  </div>
-
   <header class="header">
     <a href="#" class="brand">
-      <img src="assets/logo.png" alt="DAWPOT Lotto" class="brand-logo" />
+      <img src="assets/potluck-logo.svg?v=1" alt="POTLUCK" class="brand-logo" />
     </a>
     <nav class="nav">
-      <a href="#live">Live Draw</a>
+      <a href="#draw">Draw</a>
       <a href="#vault">Vault</a>
-      <a href="#how">How it Works</a>
+      <a href="#how">How it works</a>
       <a href="#faq">FAQ</a>
     </nav>
     <div class="header-actions">
-      <button class="btn btn-ghost" id="copy-contract" data-address="">Copy CA</button>
-      <button class="btn btn-ghost" id="connect-wallet">Connect</button>
-      <a href="https://flap.sh" id="buy-link" target="_blank" rel="noopener" class="btn btn-primary">Buy $POT</a>
+      <button class="btn btn-outline" id="copy-contract" data-address="">Copy CA</button>
+      <button class="btn btn-outline" id="connect-wallet">Check odds</button>
+      <a href="https://ponsfamily.com" id="buy-link" target="_blank" rel="noopener" class="btn btn-primary">Buy $LUCK</a>
     </div>
   </header>
 
   <main>
-    <section id="live" class="live-section">
-      <div class="live-top">
-        <span class="live-badge"><span class="live-dot"></span> Live · Robinhood Chain · Flap</span>
-        <p class="live-tagline">Every trade fills the vault. Every 20 minutes one wallet wins.</p>
+    <section class="announcement" aria-label="Potluck status">
+      <span class="announcement-dot"></span>
+      <p><strong>POTLUCK is live soon.</strong> Holder vault with 80/20 split + auto payouts. Launch on Pons V2 next.</p>
+      <a href="https://robinhoodchain.blockscout.com/address/0xA0B2CAa5cf60d882Df8A3cfA0a107e340CdBe6e1" target="_blank" rel="noopener">View vault ↗</a>
+    </section>
+
+    <section id="draw" class="hero">
+      <div class="hero-main">
+        <img src="assets/potluck-icon.png?v=1" alt="" class="hero-art" aria-hidden="true" />
+        <div class="hero-top">
+          <span class="badge" id="live-pill"><span class="dot"></span> POTLUCK lottery</span>
+          <span class="meta">Robinhood Chain · Pons · holdpot.xyz</span>
+        </div>
+
+        <h1>Hold the pot.<br /><em>Win the pot.</em></h1>
+        <p class="hero-copy">Every $LUCK trade fills the pot. Hold 20K+ tokens and you're in — no wallet connect, no registration, no buttons.</p>
+
+        <div class="hero-rules">
+          <span><b>01</b> Hold 20K $LUCK</span>
+          <span><b>02</b> Auto-entered</span>
+          <span><b>03</b> One winner / round</span>
+        </div>
+
+        <p class="label">Live prize pool</p>
+        <div class="jackpot">
+          <span class="jackpot-currency">$</span>
+          <span class="jackpot-value" id="prize-pool">0.00</span>
+        </div>
+        <p class="jackpot-sub"><span id="prize-eth">0.0000</span> ETH</p>
+
+        <div class="balls-wrap">
+          <div class="balls-heading">
+            <p class="balls-label">Current draw</p>
+            <span>One winner · 80% of pot</span>
+          </div>
+          <div class="balls" id="draw-balls" aria-live="polite"></div>
+        </div>
       </div>
 
-      <div class="live-grid">
-        <!-- Draw panel -->
-        <div class="draw-card">
-          <div class="draw-card-head">
-            <h2>Live Draw</h2>
-            <span class="lotto-pill">★ LOTTO ★</span>
+      <aside class="hero-side">
+        <div class="timer-card" id="timer-block">
+          <p class="timer-label">Next draw</p>
+          <div class="timer-ring-wrap">
+            <svg class="timer-ring" viewBox="0 0 120 120" aria-hidden="true">
+              <defs>
+                <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#ffd873" />
+                  <stop offset="1" stop-color="#f0a71c" />
+                </linearGradient>
+              </defs>
+              <circle cx="60" cy="60" r="52" class="ring-bg" />
+              <circle cx="60" cy="60" r="52" class="ring-fill" id="ring-progress" />
+            </svg>
+            <span class="timer-value" id="countdown">--:--</span>
           </div>
+          <p class="timer-status" id="draw-phase">Launch pending</p>
+        </div>
 
-          <div class="draw-body">
-            <div class="ball-rack" id="lotto-balls" aria-label="Lotto balls"></div>
-
-            <div class="countdown-wrap">
-              <svg class="countdown-ring" viewBox="0 0 200 200">
-                <circle class="ring-bg" cx="100" cy="100" r="88" />
-                <circle class="ring-progress" id="ring-progress" cx="100" cy="100" r="88" />
-              </svg>
-              <div class="countdown-center">
-                <span class="countdown-label">Next draw</span>
-                <span class="countdown-time" id="countdown">--:--</span>
-                <span class="countdown-sub" id="draw-phase">Entries open</span>
-              </div>
-            </div>
+        <div class="stats-grid">
+          <div class="stat">
+            <span class="stat-value" id="participants">0</span>
+            <span class="stat-label">Eligible</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="entries">0</span>
+            <span class="stat-label">Min hold</span>
+          </div>
+          <div class="stat stat-highlight">
+            <span class="stat-value" id="your-odds">—</span>
+            <span class="stat-label">Your odds</span>
           </div>
         </div>
 
-        <!-- Prize panel -->
-        <div class="prize-card">
-          <p class="prize-label">Current prize pool</p>
-          <div class="prize-row">
-            <span class="prize-dollar">$</span>
-            <span class="prize-value" id="prize-pool">0.00</span>
-          </div>
-          <p class="prize-eth"><span id="prize-eth">0.000</span> ETH in vault</p>
-
-          <div class="meta-row">
-            <div class="meta-box">
-              <span class="meta-num" id="participants">0</span>
-              <span class="meta-lbl">In draw</span>
-            </div>
-            <div class="meta-box">
-              <span class="meta-num" id="entries">0</span>
-              <span class="meta-lbl">Entries</span>
-            </div>
-            <div class="meta-box meta-box--gold">
-              <span class="meta-num" id="your-odds">—</span>
-              <span class="meta-lbl">Your odds</span>
-            </div>
-          </div>
-
-          <a href="https://flap.sh" id="buy-link-draw" target="_blank" rel="noopener" class="btn btn-primary btn-block">Enter draw — Buy $POT</a>
-          <button class="btn btn-gold btn-block" id="check-eligibility">Check eligibility</button>
+        <div class="hero-actions">
+          <a href="https://ponsfamily.com" id="buy-link-draw" target="_blank" rel="noopener" class="btn btn-primary btn-lg">Buy $LUCK on Pons <span>↗</span></a>
+          <p class="entry-note">Hold 20K+ $LUCK at draw time. Sell below 20K and you're out.</p>
         </div>
-      </div>
+      </aside>
     </section>
 
-    <section class="stats-row">
-      <div class="stat-box"><span class="stat-lbl">Vault</span><span class="stat-val green" id="vault-balance">$0.00</span></div>
-      <div class="stat-box"><span class="stat-lbl">Fees collected</span><span class="stat-val" id="fees-collected">$0.00</span></div>
-      <div class="stat-box"><span class="stat-lbl">Total paid out</span><span class="stat-val gold" id="total-paid">$0.00</span></div>
-      <div class="stat-box"><span class="stat-lbl">Draws</span><span class="stat-val" id="draws-count">0</span></div>
+    <section class="metrics">
+      <div class="metric"><span>Vault balance</span><strong class="text-brand" id="vault-balance">$0.00</strong></div>
+      <div class="metric"><span>Tax to vault</span><strong id="fees-collected">100%</strong></div>
+      <div class="metric"><span>All-time paid</span><strong class="text-accent" id="total-paid">0.0000 ETH</strong></div>
+      <div class="metric"><span>Completed draws</span><strong id="draws-count">0</strong></div>
     </section>
 
-    <section id="vault" class="split-section">
-      <div class="card">
-        <div class="card-head"><h2>The vault</h2><span class="tag">100% on-chain</span></div>
-        <p class="card-desc">5% buy/sell tax → 100% to vault. Every 20 min one holder wins the full balance.</p>
-        <div class="vault-bar"><div class="vault-fill" id="vault-fill"></div></div>
-        <div class="vault-pct"><span>Empty</span><span class="gold" id="vault-fill-pct">0%</span><span>Full</span></div>
-        <dl class="mini-stats">
-          <div><dt>Buy tax</dt><dd>5%</dd></div>
-          <div><dt>Sell tax</dt><dd>5%</dd></div>
-          <div><dt>Min hold</dt><dd>20K</dd></div>
-          <div><dt>Chain</dt><dd>RH Chain</dd></div>
-        </dl>
-      </div>
-      <div class="card">
-        <div class="card-head"><h2>Live activity</h2><span class="tag tag-live"><span class="live-dot sm"></span> Live</span></div>
-        <ul class="feed" id="activity-feed"></ul>
-      </div>
+    <section id="vault" class="grid-2">
+      <article class="card">
+        <p class="eyebrow">The pot</p>
+        <h2>Every swap builds the next jackpot.</h2>
+        <p>A 5% creator tax on every buy and sell accrues in ETH to the POTLUCK vault. Every 20 minutes the keeper auto-pays one eligible holder 80% of the pot (20% dev fee).</p>
+        <div class="progress"><div class="progress-fill" id="vault-fill"></div></div>
+        <p class="progress-caption" id="vault-fill-pct">Waiting for launch…</p>
+        <div class="tags">
+          <span>Buy 5%</span><span>Sell 5%</span><span>Min 20K</span><span>80/20 split</span>
+        </div>
+      </article>
+      <article class="card">
+        <p class="eyebrow">On-chain</p>
+        <h2>Live activity</h2>
+        <ul class="feed" id="activity-feed">
+          <li class="feed-empty">Launch pending — activity will appear here.</li>
+        </ul>
+      </article>
     </section>
 
-    <section id="how" class="section-block">
-      <h2>How it works</h2>
+    <section id="how" class="section">
+      <div class="section-heading">
+        <p class="eyebrow">How it works</p>
+        <h2>Three moves. Hold to enter.</h2>
+      </div>
       <div class="steps">
-        <article><span>01</span><h3>Buy $POT</h3><p>Launch on Flap. Hold 20,000+ tokens.</p></article>
-        <article><span>02</span><h3>Tax → vault</h3><p>5% on every trade fills the pot.</p></article>
-        <article><span>03</span><h3>Stay eligible</h3><p>Hold above minimum — auto-entered.</p></article>
-        <article><span>04</span><h3>Win every 20m</h3><p>One wallet takes the full vault.</p></article>
+        <div class="step">
+          <span>01</span>
+          <h3>Buy $LUCK</h3>
+          <p>Grab $LUCK on Pons, on Robinhood Chain. Every trade adds 5% to the pot.</p>
+        </div>
+        <div class="step">
+          <span>02</span>
+          <h3>Hold 20K+</h3>
+          <p>That's the whole entry. No wallet connect, no registration, no extra transaction.</p>
+        </div>
+        <div class="step">
+          <span>03</span>
+          <h3>Win the pot</h3>
+          <p>Every 20 minutes the keeper pays 80% of the pot to one holder, on-chain.</p>
+        </div>
       </div>
     </section>
 
-    <section id="winners" class="section-block">
+    <section class="proof-card" id="factory-proof">
+      <div>
+        <p class="eyebrow">Proof, not promises</p>
+        <h2>Holder vault is live.</h2>
+        <p>Launched on Pons V2 with the vault as creator fee recipient. Winner gets 80%, dev gets 20%. Keeper auto-pays every 20 minutes.</p>
+      </div>
+      <img src="assets/potluck-icon.png?v=1" alt="" class="proof-logo" aria-hidden="true" loading="lazy" />
+      <a class="proof-link" id="factory-link" href="#" target="_blank" rel="noopener" hidden>
+        <span>Vault contract</span>
+        <code id="factory-addr">—</code>
+        <b>Verify on Blockscout ↗</b>
+      </a>
+    </section>
+
+    <section class="section">
+      <p class="eyebrow">The receipts</p>
       <h2>Winner history</h2>
+      <p class="section-intro">Every completed draw is read from the vault's <code>DrawExecuted</code> events with payout receipts.</p>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>#</th><th>Wallet</th><th>Prize</th><th>Time</th><th>Tx</th></tr></thead>
-          <tbody id="winners-body">
-            <tr class="empty"><td colspan="5">Waiting for first draw…</td></tr>
-          </tbody>
+          <thead><tr><th>#</th><th>Wallet</th><th>Prize</th><th>Eligible</th><th>Time</th><th>Tx</th></tr></thead>
+          <tbody id="winners-body"><tr class="empty"><td colspan="6">First draw coming soon…</td></tr></tbody>
         </table>
       </div>
     </section>
 
-    <section id="faq" class="section-block">
-      <h2>FAQ</h2>
-      <div class="faq">
-        <details open><summary>How do I enter?</summary><p>Buy $POT on Flap, hold 20K+ on Robinhood Chain. Automatic — no signup.</p></details>
-        <details><summary>How often are draws?</summary><p>Every 20 minutes. Full vault to one random eligible wallet.</p></details>
-        <details><summary>Where do fees go?</summary><p>100% of the 5% tax goes to the vault via Flap.</p></details>
-        <details><summary>Can I win twice?</summary><p>Yes — keep holding and you're in every draw.</p></details>
-      </div>
+    <section id="faq" class="section">
+      <p class="eyebrow">FAQ</p>
+      <h2>The important stuff</h2>
+      <details open><summary>How do I enter?</summary><p>Buy $LUCK on Pons and hold at least 20,000 tokens. You're automatically eligible — no registration or wallet connect required.</p></details>
+      <details><summary>What if I sell?</summary><p>If your balance drops below 20K before the draw, you're removed from that round's eligible snapshot.</p></details>
+      <details><summary>How is the pot split?</summary><p>Each draw pays 80% to one eligible holder and 20% to the dev wallet. Both transfers happen automatically in the same on-chain transaction.</p></details>
+      <details><summary>When are draws?</summary><p>Every 1,200 seconds — exactly 20 minutes. The keeper runs automatically and the site updates winner history within seconds.</p></details>
+      <details><summary>How is the pot funded?</summary><p>A 5% creator tax on every buy and sell is paid in ETH to the POTLUCK vault through the Pons fee escrow. One holder wins 80% of the balance at draw time.</p></details>
     </section>
   </main>
 
   <footer class="footer">
-    <img src="assets/logo.png" alt="DAWPOT" class="footer-logo" />
+    <img src="assets/potluck-logo.svg?v=1" alt="POTLUCK" class="footer-logo" />
     <div class="footer-links">
-      <a href="https://flap.sh" target="_blank" rel="noopener">Flap</a>
+      <a href="https://ponsfamily.com" target="_blank" rel="noopener">Pons</a>
       <a href="https://robinhoodchain.blockscout.com/" target="_blank" rel="noopener">Explorer</a>
-      <a href="https://github.com/ironiamison/drawpot" target="_blank" rel="noopener">GitHub</a>
     </div>
-    <p>© 2026 DAWPOT · drawpot.xyz · Not financial advice.</p>
+    <p>© 2026 POTLUCK · Not financial advice</p>
   </footer>
 
+  <div class="modal hidden" id="draw-overlay" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <p class="modal-title">Draw time</p>
+      <div class="balls" id="overlay-balls"></div>
+      <p class="modal-sub" id="overlay-msg">Selecting winner on-chain…</p>
+    </div>
+  </div>
+
+  <div class="winner-modal hidden" id="winner-modal" role="dialog" aria-modal="true" aria-labelledby="winner-modal-title">
+    <div class="winner-modal-card">
+      <button class="winner-modal-close" id="winner-modal-close" type="button" aria-label="Close winner announcement">×</button>
+      <p class="winner-kicker">Draw complete</p>
+      <div class="winner-burst">★</div>
+      <h2 id="winner-modal-title">We have a winner.</h2>
+      <p class="winner-wallet-label">Winning wallet</p>
+      <p class="winner-modal-wallet" id="winner-modal-wallet">0x…</p>
+      <p class="winner-prize-label">Received</p>
+      <p class="winner-modal-prize" id="winner-modal-prize">0.0000 ETH</p>
+      <a class="btn btn-primary winner-modal-link" id="winner-modal-link" href="#" target="_blank" rel="noopener">View payout on Blockscout ↗</a>
+      <a class="btn btn-outline winner-modal-link" id="winner-modal-share" href="#" target="_blank" rel="noopener">Share on X</a>
+      <p class="winner-receipt">Verified by the on-chain DrawExecuted event.</p>
+    </div>
+  </div>
+
   <div class="toast hidden" id="toast"></div>
-  <script src="config.js"></script>
-  <script src="app.js"></script>
+  <script src="config.js?v=202609030450"></script>
+  <script src="app.js?v=202609030450"></script>
 </body>
 </html>

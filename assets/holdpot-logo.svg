@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 150" fill="none" role="img" aria-labelledby="title">
+  <title id="title">HOLDPOT</title>
+  <defs>
+    <linearGradient id="lime" x1="21" y1="12" x2="121" y2="139" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#DFFF42"/>
+      <stop offset="1" stop-color="#79E600"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#lime)" d="M19 134 102 17l24-6-7 48 18-5-14 25 12-3-84 67 22-49-54 40Z"/>
+  <path fill="#102400" d="m41 126 67-91-29 57-38 34Zm39-9 29-50-11 32-18 18Zm-31-2 38-46-21 39-17 7Z"/>
+  <path d="M22 141 97 37" stroke="#E6FF4D" stroke-width="5" stroke-linecap="round"/>
+  <text x="154" y="104" fill="url(#lime)" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="88" font-weight="900" letter-spacing="-2">HOLD</text>
+  <text x="428" y="104" fill="#fff" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="88" font-weight="900" letter-spacing="-2">P</text>
+  <circle cx="526" cy="73" r="42" fill="#fff"/>
+  <path d="m526 42 8 23 23 8-23 8-8 23-8-23-23-8 23-8 8-23Z" fill="#050805"/>
+  <text x="575" y="104" fill="#fff" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="88" font-weight="900" letter-spacing="-2">T</text>
+</svg>
